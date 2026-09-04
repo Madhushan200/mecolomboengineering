@@ -36,6 +36,8 @@ export function Navbar() {
     isMuted,
     toggleMute,
     enableAudio,
+    isCloudConnected,
+    lastCloudSync,
   } = useHotelEngineering();
   const { showToast } = useToast();
 
@@ -144,6 +146,23 @@ export function Navbar() {
 
           {/* Right Controls */}
           <div className="flex items-center gap-2.5">
+            {/* Supabase Live Cloud Status Badge */}
+            <div
+              className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-colors ${
+                isCloudConnected
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : 'bg-amber-50 text-amber-700 border-amber-200'
+              }`}
+              title={
+                isCloudConnected
+                  ? `Supabase Live Sync Active • Last synced: ${lastCloudSync ? lastCloudSync.toLocaleTimeString() : 'Just now'}`
+                  : 'Supabase Offline Mode'
+              }
+            >
+              <span className={`w-2 h-2 rounded-full ${isCloudConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+              <span className="hidden md:inline">{isCloudConnected ? 'Supabase Live' : 'Offline Mode'}</span>
+            </div>
+
             {/* Audio Alert Toggle ONLY for Engineering & Admin */}
             {(isEngineering || isAdmin) && (
               <button

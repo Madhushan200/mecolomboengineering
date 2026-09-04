@@ -42,6 +42,10 @@ interface EngineeringContextType {
   isMuted: boolean;
   toggleMute: () => void;
   enableAudio: () => boolean;
+
+  // Cloud Sync Status
+  isCloudConnected: boolean;
+  lastCloudSync: Date | null;
   
   // User Session
   setCurrentUser: (user: UserProfile) => void;
@@ -95,6 +99,8 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
   const [currentUser, setCurrentUser] = useState<UserProfile>(initialUsers[1]); // Eng. Kasun
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>(initialWorkOrders);
   const [isMuted, setIsMuted] = useState(false);
+  const [isCloudConnected, setIsCloudConnected] = useState(isSupabaseConfigured);
+  const [lastCloudSync, setLastCloudSync] = useState<Date | null>(null);
 
   // Load from LocalStorage
   useEffect(() => {
@@ -178,38 +184,44 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
     const pullRemoteData = async () => {
       try {
         const remoteOrders = await fetchWorkOrdersFromSupabase();
-        if (remoteOrders && remoteOrders.length > 0 && isMounted) {
-          setWorkOrders(prev => {
-            // Detect any new incoming unaccepted tickets while screen was off
-            const isEngineeringRole =
-              currentUser.role === 'ENGINEERING' ||
-              currentUser.role === 'ADMIN' ||
-              currentUser.role === 'TECHNICIAN';
+        if (remoteOrders !== null && isMounted) {
+          setIsCloudConnected(true);
+          setLastCloudSync(new Date());
 
-            if (isEngineeringRole) {
-              const brandNewOrders = remoteOrders.filter(
-                ro => ro.status === 'NEW' && !prev.some(p => p.workOrderNumber === ro.workOrderNumber)
-              );
-              brandNewOrders.forEach(bwo => {
-                nativeNotifications.sendNewTicketAlert(bwo);
-              });
-            }
+          if (remoteOrders.length > 0) {
+            setWorkOrders(prev => {
+              // Detect any new incoming unaccepted tickets while screen was off
+              const isEngineeringRole =
+                currentUser.role === 'ENGINEERING' ||
+                currentUser.role === 'ADMIN' ||
+                currentUser.role === 'TECHNICIAN';
 
-            // Merge remote orders with local orders
-            const map = new Map<string, WorkOrder>();
-            remoteOrders.forEach(wo => map.set(wo.workOrderNumber, wo));
-            prev.forEach(wo => {
-              if (!map.has(wo.workOrderNumber)) {
-                map.set(wo.workOrderNumber, wo);
+              if (isEngineeringRole) {
+                const brandNewOrders = remoteOrders.filter(
+                  ro => ro.status === 'NEW' && !prev.some(p => p.workOrderNumber === ro.workOrderNumber)
+                );
+                brandNewOrders.forEach(bwo => {
+                  nativeNotifications.sendNewTicketAlert(bwo);
+                });
               }
+
+              // Merge remote orders with local orders
+              const map = new Map<string, WorkOrder>();
+              remoteOrders.forEach(wo => map.set(wo.workOrderNumber, wo));
+              prev.forEach(wo => {
+                if (!map.has(wo.workOrderNumber)) {
+                  map.set(wo.workOrderNumber, wo);
+                }
+              });
+              return Array.from(map.values()).sort(
+                (a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime()
+              );
             });
-            return Array.from(map.values()).sort(
-              (a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime()
-            );
-          });
+          }
         }
       } catch (err) {
         console.error('Background sync polling error:', err);
+        if (isMounted) setIsCloudConnected(false);
       }
     };
 
@@ -230,6 +242,9 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
           table: 'work_orders',
         },
         payload => {
+          setIsCloudConnected(true);
+          setLastCloudSync(new Date());
+
           if (payload.eventType === 'INSERT') {
             const newWo = fromDbWorkOrder(payload.new);
             const isEngineeringRole =
@@ -263,7 +278,11 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
           }
         }
       )
-      .subscribe();
+      .subscribe(status => {
+        if (status === 'SUBSCRIBED') {
+          setIsCloudConnected(true);
+        }
+      });
 
     return () => {
       isMounted = false;
@@ -691,6 +710,8 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
         isMuted,
         toggleMute,
         enableAudio,
+        isCloudConnected,
+        lastCloudSync,
         setCurrentUser,
         switchUser,
         createWorkOrder,
