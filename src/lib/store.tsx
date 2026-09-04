@@ -106,6 +106,29 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
   // Load from LocalStorage
   useEffect(() => {
     try {
+      const DATA_VERSION = '2026_09_04_PROD_CLEAN_V6';
+      const storedVersion = localStorage.getItem('simple_eng_data_version');
+      
+      // Auto-purge legacy dummy data cache
+      if (storedVersion !== DATA_VERSION) {
+        localStorage.removeItem('simple_eng_work_orders');
+        localStorage.removeItem('simple_eng_work_orders_v2');
+        localStorage.removeItem('simple_eng_work_orders_v3');
+        localStorage.setItem('simple_eng_data_version', DATA_VERSION);
+        localStorage.setItem('simple_eng_work_orders_v4', JSON.stringify([]));
+        setWorkOrders([]);
+      } else {
+        const storedWos = localStorage.getItem('simple_eng_work_orders_v4');
+        if (storedWos) {
+          const parsed: WorkOrder[] = JSON.parse(storedWos);
+          // Safety filter against any old dummy ticket numbers
+          const clean = parsed.filter(w => !w.workOrderNumber?.startsWith('WO-2026-004'));
+          setWorkOrders(clean);
+        } else {
+          setWorkOrders([]);
+        }
+      }
+
       const storedSettings = localStorage.getItem('simple_eng_settings');
       if (storedSettings) {
         setSettings(JSON.parse(storedSettings));
@@ -144,14 +167,6 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
         setCurrentUser(parsedUser);
       }
 
-      const storedWos = localStorage.getItem('simple_eng_work_orders_v3');
-      if (storedWos) {
-        setWorkOrders(JSON.parse(storedWos));
-      } else {
-        setWorkOrders([]);
-        localStorage.setItem('simple_eng_work_orders_v3', JSON.stringify([]));
-      }
-
       setIsMuted(soundAlert.getMuted());
     } catch (e) {
       console.error('Error loading stored engineering data:', e);
@@ -168,7 +183,7 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
     localStorage.setItem('simple_eng_technicians', JSON.stringify(technicians));
     localStorage.setItem('simple_eng_users_v3', JSON.stringify(users));
     localStorage.setItem('simple_eng_current_user', JSON.stringify(currentUser));
-    localStorage.setItem('simple_eng_work_orders_v3', JSON.stringify(workOrders));
+    localStorage.setItem('simple_eng_work_orders_v4', JSON.stringify(workOrders));
   }, [isLoaded, settings, departments, technicians, users, currentUser, workOrders]);
 
   // Supabase Hydration & Dual-Engine Realtime Sync (WebSocket + 3s Polling)
@@ -189,36 +204,27 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
           setIsCloudConnected(true);
           setLastCloudSync(new Date());
 
-          if (remoteOrders.length > 0) {
-            setWorkOrders(prev => {
-              // Detect any new incoming unaccepted tickets while screen was off
-              const isEngineeringRole =
-                currentUser.role === 'ENGINEERING' ||
-                currentUser.role === 'ADMIN' ||
-                currentUser.role === 'TECHNICIAN';
+          setWorkOrders(prev => {
+            // Detect any new incoming unaccepted tickets while screen was off
+            const isEngineeringRole =
+              currentUser.role === 'ENGINEERING' ||
+              currentUser.role === 'ADMIN' ||
+              currentUser.role === 'TECHNICIAN';
 
-              if (isEngineeringRole) {
-                const brandNewOrders = remoteOrders.filter(
-                  ro => ro.status === 'NEW' && !prev.some(p => p.workOrderNumber === ro.workOrderNumber)
-                );
-                brandNewOrders.forEach(bwo => {
-                  nativeNotifications.sendNewTicketAlert(bwo);
-                });
-              }
-
-              // Merge remote orders with local orders
-              const map = new Map<string, WorkOrder>();
-              remoteOrders.forEach(wo => map.set(wo.workOrderNumber, wo));
-              prev.forEach(wo => {
-                if (!map.has(wo.workOrderNumber)) {
-                  map.set(wo.workOrderNumber, wo);
-                }
-              });
-              return Array.from(map.values()).sort(
-                (a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime()
+            if (isEngineeringRole) {
+              const brandNewOrders = remoteOrders.filter(
+                ro => ro.status === 'NEW' && !prev.some(p => p.workOrderNumber === ro.workOrderNumber)
               );
-            });
-          }
+              brandNewOrders.forEach(bwo => {
+                nativeNotifications.sendNewTicketAlert(bwo);
+              });
+            }
+
+            // Supabase is the single source of truth for synced orders
+            return remoteOrders.sort(
+              (a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime()
+            );
+          });
         }
       } catch (err) {
         console.error('Background sync polling error:', err);
