@@ -14,6 +14,7 @@ export function toDbWorkOrder(wo: WorkOrder) {
   return {
     id: isValidUUID(wo.id) ? wo.id : generateUUID(),
     work_order_number: wo.workOrderNumber,
+    hotel_name: hotel,
     reported_by: wo.reportedBy,
     reported_by_id: isValidUUID(wo.reportedById) ? wo.reportedById : null,
     department_id: isValidUUID(wo.departmentId) ? wo.departmentId : null,

@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS system_settings (
 CREATE TABLE IF NOT EXISTS work_orders (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   work_order_number TEXT UNIQUE NOT NULL,
+  hotel_name TEXT NOT NULL DEFAULT 'ME Colombo',
   reported_by TEXT NOT NULL,
   reported_by_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   department_id UUID REFERENCES departments(id) ON DELETE SET NULL,
