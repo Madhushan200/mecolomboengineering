@@ -19,14 +19,28 @@ import {
   User,
   Eye,
   Camera,
+  Trash2,
 } from 'lucide-react';
 import { TicketDetailModal } from '@/components/work-orders/TicketDetailModal';
+import { useToast } from '@/components/ui/Toast';
 
 export default function ExecutivePortalPage() {
-  const { workOrders, currentUser, settings } = useHotelEngineering();
+  const { workOrders, currentUser, settings, deleteWorkOrder } = useHotelEngineering();
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'ALL' | 'NEW' | 'IN_PROGRESS' | 'COMPLETED'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<any>(null);
+
+  const handleDeleteTicket = (woId: string, woNum: string) => {
+    if (
+      confirm(
+        `Are you sure you want to permanently delete ticket ${woNum}? This action cannot be undone.`
+      )
+    ) {
+      deleteWorkOrder(woId, woNum);
+      showToast(`Ticket ${woNum} deleted successfully.`, 'info');
+    }
+  };
 
   // Filter requests (if executive, show all or their department requests)
   const filteredOrders = workOrders.filter(w => {
@@ -190,6 +204,19 @@ export default function ExecutivePortalPage() {
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
                         <Camera className="w-3 h-3" /> Photo
                       </span>
+                    )}
+                    {currentUser.role === 'ADMIN' && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTicket(wo.id, wo.workOrderNumber);
+                        }}
+                        className="p-1 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors cursor-pointer"
+                        title="Admin: Permanently delete ticket"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     )}
                   </div>
                 </div>

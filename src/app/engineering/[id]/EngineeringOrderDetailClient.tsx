@@ -21,6 +21,7 @@ import {
   Check,
   Camera,
   X,
+  Trash2,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
@@ -40,6 +41,7 @@ export default function EngineeringOrderDetailClient() {
     resumeWork,
     completeWork,
     closeWorkOrder,
+    deleteWorkOrder,
   } = useHotelEngineering();
 
   const toast = useToast();
@@ -125,6 +127,18 @@ export default function EngineeringOrderDetailClient() {
     toast.success('Work Order verified and permanently CLOSED');
   };
 
+  const handleDelete = () => {
+    if (
+      confirm(
+        `Are you sure you want to permanently delete ticket ${workOrder.workOrderNumber || workOrder.id}? This action cannot be undone.`
+      )
+    ) {
+      deleteWorkOrder(workOrder.id, workOrder.workOrderNumber);
+      toast.info(`Ticket ${workOrder.workOrderNumber || workOrder.id} deleted successfully`);
+      router.push('/engineering');
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
       {/* Top Header */}
@@ -145,6 +159,18 @@ export default function EngineeringOrderDetailClient() {
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 mt-1">{workOrder.title}</h1>
           </div>
         </div>
+
+        {currentUser.role === 'ADMIN' && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="p-2.5 px-4 rounded-xl text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+            title="Admin: Permanently delete ticket"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Delete Ticket</span>
+          </button>
+        )}
       </div>
 
       {/* Main Grid */}

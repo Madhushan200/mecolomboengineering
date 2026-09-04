@@ -22,6 +22,7 @@ import { soundAlert } from './audio-alert';
 import { supabase, isSupabaseConfigured } from './supabase';
 import {
   syncWorkOrderToSupabase,
+  deleteWorkOrderFromSupabase,
   fetchWorkOrdersFromSupabase,
   fromDbWorkOrder,
   syncUserProfileToSupabase,
@@ -80,6 +81,7 @@ interface EngineeringContextType {
   resumeWork: (id: string) => void;
   completeWork: (id: string, workDone: string, completionNote?: string, afterPhotoUrl?: string) => void;
   closeWorkOrder: (id: string, closedBy: string, finalNote?: string) => void;
+  deleteWorkOrder: (id: string, workOrderNumber?: string) => void;
   
   // Admin Operations
   updateSettings: (newSettings: Partial<SystemSettings>) => void;
@@ -701,6 +703,19 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
     );
   };
 
+  // 9. Delete Work Order (Admin Operation)
+  const deleteWorkOrder = (id: string, workOrderNumber?: string) => {
+    setWorkOrders(prev =>
+      prev.filter(
+        w =>
+          w.id !== id &&
+          w.workOrderNumber !== id &&
+          (!workOrderNumber || w.workOrderNumber !== workOrderNumber)
+      )
+    );
+    deleteWorkOrderFromSupabase(id, workOrderNumber);
+  };
+
   // Admin Setup
   const updateSettings = (newSettings: Partial<SystemSettings>) => {
     setSettings(prev => ({ ...prev, ...newSettings }));
@@ -794,6 +809,7 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
         resumeWork,
         completeWork,
         closeWorkOrder,
+        deleteWorkOrder,
         updateSettings,
         addDepartment,
         deleteDepartment,

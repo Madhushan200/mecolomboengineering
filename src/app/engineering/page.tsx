@@ -24,6 +24,7 @@ import {
   VolumeX,
   Camera,
   Eye,
+  Trash2,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
@@ -34,6 +35,7 @@ export default function EngineeringPortalPage() {
   const {
     workOrders,
     acceptWorkOrder,
+    deleteWorkOrder,
     currentUser,
     enableAudio,
     technicians,
@@ -100,6 +102,17 @@ export default function EngineeringPortalPage() {
     enableAudio();
     acceptWorkOrder(woId, currentUser.name);
     showToast(`Work Order ${woNum} accepted! Status moved to ACCEPTED.`, 'success');
+  };
+
+  const handleDeleteTicket = (woId: string, woNum: string) => {
+    if (
+      confirm(
+        `Are you sure you want to permanently delete ticket ${woNum}? This action cannot be undone.`
+      )
+    ) {
+      deleteWorkOrder(woId, woNum);
+      showToast(`Ticket ${woNum} deleted successfully.`, 'info');
+    }
   };
 
   return (
@@ -377,12 +390,27 @@ export default function EngineeringPortalPage() {
                     </span>
                   </div>
 
-                  <div className="text-xs text-slate-400">
-                    Reported by: <strong>{wo.reportedBy}</strong> ({wo.departmentName}) •{' '}
-                    {new Date(wo.reportedAt).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs text-slate-400">
+                      Reported by: <strong>{wo.reportedBy}</strong> ({wo.departmentName}) •{' '}
+                      {new Date(wo.reportedAt).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </div>
+                    {currentUser.role === 'ADMIN' && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTicket(wo.id, wo.workOrderNumber);
+                        }}
+                        className="p-1 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors cursor-pointer"
+                        title="Admin: Permanently delete ticket"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
 

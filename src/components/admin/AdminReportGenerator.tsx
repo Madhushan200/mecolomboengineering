@@ -21,11 +21,12 @@ import {
   Download,
   AlertTriangle,
   Layers,
+  Trash2,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
 export const AdminReportGenerator: React.FC = () => {
-  const { workOrders, departments, technicians } = useHotelEngineering();
+  const { workOrders, departments, technicians, deleteWorkOrder } = useHotelEngineering();
   const { showToast } = useToast();
 
   // Filter Mode: 'DAY' | 'MONTH' | 'RANGE'
@@ -54,6 +55,17 @@ export const AdminReportGenerator: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Quick Preset Handlers
+  const handleDeleteTicket = (woId: string, woNum: string) => {
+    if (
+      confirm(
+        `Are you sure you want to permanently delete ticket ${woNum}? This action cannot be undone.`
+      )
+    ) {
+      deleteWorkOrder(woId, woNum);
+      showToast(`Ticket ${woNum} deleted successfully.`, 'info');
+    }
+  };
+
   const handleSetToday = () => {
     setFilterMode('DAY');
     setSelectedDay(new Date().toISOString().slice(0, 10));
@@ -595,12 +607,13 @@ export const AdminReportGenerator: React.FC = () => {
                 <th className="py-2.5 px-3">Status</th>
                 <th className="py-2.5 px-3">Title</th>
                 <th className="py-2.5 px-3">Technician</th>
+                <th className="py-2.5 px-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-xs text-slate-400">
+                  <td colSpan={10} className="py-8 text-center text-xs text-slate-400">
                     No work orders found for the selected hotel and date filters.
                   </td>
                 </tr>
@@ -636,6 +649,16 @@ export const AdminReportGenerator: React.FC = () => {
                       </td>
                       <td className="py-2 px-3 font-medium max-w-xs truncate">{wo.title}</td>
                       <td className="py-2 px-3 text-slate-600">{wo.assignedTechnicianName || '-'}</td>
+                      <td className="py-2 px-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTicket(wo.id, wo.workOrderNumber)}
+                          className="p-1 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors cursor-pointer"
+                          title="Admin: Permanently delete ticket"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })

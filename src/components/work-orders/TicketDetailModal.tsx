@@ -22,6 +22,7 @@ import {
   FileText,
   Camera,
   Eye,
+  Trash2,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
@@ -41,6 +42,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ workOrder,
     resumeWork,
     completeWork,
     closeWorkOrder,
+    deleteWorkOrder,
     enableAudio,
   } = useHotelEngineering();
 
@@ -108,6 +110,18 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ workOrder,
     showToast(`Work Order ${workOrder.workOrderNumber} permanently CLOSED & Verified.`, 'success');
   };
 
+  const handleDelete = () => {
+    if (
+      confirm(
+        `Are you sure you want to permanently delete ticket ${workOrder.workOrderNumber}? This action cannot be undone.`
+      )
+    ) {
+      deleteWorkOrder(workOrder.id, workOrder.workOrderNumber);
+      showToast(`Ticket ${workOrder.workOrderNumber} deleted successfully.`, 'info');
+      onClose();
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fade-in">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden my-auto animate-scale-in">
@@ -133,12 +147,25 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ workOrder,
               </h2>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-all"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {currentUser.role === 'ADMIN' && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="p-2 px-3 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 hover:border-red-200 border border-transparent transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                title="Admin: Permanently delete ticket"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Delete Ticket</span>
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-all cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Modal Body */}

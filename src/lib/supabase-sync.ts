@@ -166,6 +166,36 @@ export async function fetchWorkOrdersFromSupabase(): Promise<WorkOrder[] | null>
   }
 }
 
+// Delete a work order from Supabase
+export async function deleteWorkOrderFromSupabase(id: string, workOrderNumber?: string): Promise<boolean> {
+  if (!isSupabaseConfigured || !supabase) return false;
+  try {
+    // 1. Delete associated status history
+    if (isValidUUID(id)) {
+      await supabase.from('work_order_status_history').delete().eq('work_order_id', id);
+    }
+
+    // 2. Delete work order by id or work_order_number
+    if (isValidUUID(id)) {
+      const { error } = await supabase.from('work_orders').delete().eq('id', id);
+      if (error) console.error('Supabase delete error by id:', error);
+    }
+    
+    if (workOrderNumber) {
+      const { error } = await supabase.from('work_orders').delete().eq('work_order_number', workOrderNumber);
+      if (error) console.error('Supabase delete error by number:', error);
+    } else if (!isValidUUID(id)) {
+      const { error } = await supabase.from('work_orders').delete().eq('work_order_number', id);
+      if (error) console.error('Supabase delete error by fallback id:', error);
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Supabase deleteWorkOrder exception:', err);
+    return false;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // USER PROFILES LIVE CLOUD SYNC (Ensures all created logins work on APK & Web)
 // ---------------------------------------------------------------------------
