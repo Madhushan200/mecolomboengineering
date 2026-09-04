@@ -97,7 +97,7 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
   const [departments, setDepartments] = useState<Department[]>(initialDepartments);
   const [technicians, setTechnicians] = useState<Technician[]>(initialTechnicians);
   const [users, setUsers] = useState<UserProfile[]>(initialUsers);
-  const [currentUser, setCurrentUser] = useState<UserProfile>(initialUsers[1]); // Eng. Kasun
+  const [currentUser, setCurrentUser] = useState<UserProfile>(initialUsers[0]); // Administrator
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>(initialWorkOrders);
   const [isMuted, setIsMuted] = useState(false);
   const [isCloudConnected, setIsCloudConnected] = useState(isSupabaseConfigured);
@@ -108,11 +108,7 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
     try {
       const storedSettings = localStorage.getItem('simple_eng_settings');
       if (storedSettings) {
-        const parsed = JSON.parse(storedSettings);
-        if (parsed.hotelName === 'Grand Cinnamon Hotel' || parsed.hotelName === 'ME Colombo Hotel') {
-          parsed.hotelName = 'ME Colombo';
-        }
-        setSettings(parsed);
+        setSettings(JSON.parse(storedSettings));
       } else {
         setSettings(initialSystemSettings);
       }
@@ -123,34 +119,38 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
       const storedTechs = localStorage.getItem('simple_eng_technicians');
       if (storedTechs) setTechnicians(JSON.parse(storedTechs));
 
-      // Load users with seamless auto-migration of all standard usernames
-      const storedUsers = localStorage.getItem('simple_eng_users_v2');
+      // Load users and ensure admin password is adminme1234
+      const storedUsers = localStorage.getItem('simple_eng_users_v3');
       if (storedUsers) {
-        setUsers(JSON.parse(storedUsers));
-      } else {
-        const legacy = localStorage.getItem('simple_eng_users');
-        if (legacy) {
-          try {
-            const legacyParsed: UserProfile[] = JSON.parse(legacy);
-            const customCreated = legacyParsed.filter(u => !initialUsers.some(init => init.id === u.id));
-            const allMerged = [...initialUsers, ...customCreated];
-            setUsers(allMerged);
-            localStorage.setItem('simple_eng_users_v2', JSON.stringify(allMerged));
-          } catch {
-            setUsers(initialUsers);
-            localStorage.setItem('simple_eng_users_v2', JSON.stringify(initialUsers));
+        const parsed: UserProfile[] = JSON.parse(storedUsers);
+        const updated = parsed.map(u => {
+          if (u.role === 'ADMIN' || u.username === 'mecolomboadmin') {
+            return { ...u, password: 'adminme1234' };
           }
-        } else {
-          setUsers(initialUsers);
-          localStorage.setItem('simple_eng_users_v2', JSON.stringify(initialUsers));
-        }
+          return u;
+        });
+        setUsers(updated);
+      } else {
+        setUsers(initialUsers);
+        localStorage.setItem('simple_eng_users_v3', JSON.stringify(initialUsers));
       }
 
       const storedUser = localStorage.getItem('simple_eng_current_user');
-      if (storedUser) setCurrentUser(JSON.parse(storedUser));
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        if (parsedUser.role === 'ADMIN' || parsedUser.username === 'mecolomboadmin') {
+          parsedUser.password = 'adminme1234';
+        }
+        setCurrentUser(parsedUser);
+      }
 
-      const storedWos = localStorage.getItem('simple_eng_work_orders');
-      if (storedWos) setWorkOrders(JSON.parse(storedWos));
+      const storedWos = localStorage.getItem('simple_eng_work_orders_v3');
+      if (storedWos) {
+        setWorkOrders(JSON.parse(storedWos));
+      } else {
+        setWorkOrders([]);
+        localStorage.setItem('simple_eng_work_orders_v3', JSON.stringify([]));
+      }
 
       setIsMuted(soundAlert.getMuted());
     } catch (e) {
@@ -166,9 +166,9 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
     localStorage.setItem('simple_eng_settings', JSON.stringify(settings));
     localStorage.setItem('simple_eng_departments', JSON.stringify(departments));
     localStorage.setItem('simple_eng_technicians', JSON.stringify(technicians));
-    localStorage.setItem('simple_eng_users_v2', JSON.stringify(users));
+    localStorage.setItem('simple_eng_users_v3', JSON.stringify(users));
     localStorage.setItem('simple_eng_current_user', JSON.stringify(currentUser));
-    localStorage.setItem('simple_eng_work_orders', JSON.stringify(workOrders));
+    localStorage.setItem('simple_eng_work_orders_v3', JSON.stringify(workOrders));
   }, [isLoaded, settings, departments, technicians, users, currentUser, workOrders]);
 
   // Supabase Hydration & Dual-Engine Realtime Sync (WebSocket + 3s Polling)

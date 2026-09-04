@@ -6,16 +6,12 @@ import { useHotelEngineering } from '@/lib/store';
 import { initialUsers } from '@/lib/initial-data';
 import {
   Wrench,
-  Building,
-  Shield,
   ArrowRight,
   Smartphone,
   Lock,
   User,
-  ChevronDown,
-  Sparkles,
   KeyRound,
-  CheckCircle2,
+  ShieldCheck,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
@@ -25,7 +21,7 @@ export default function LoginPage() {
   const { showToast } = useToast();
 
   const [identifier, setIdentifier] = useState('mecolomboadmin');
-  const [password, setPassword] = useState('mecolombo');
+  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSignIn = (e: React.FormEvent) => {
@@ -36,10 +32,10 @@ export default function LoginPage() {
     const cleanId = identifier.trim().toLowerCase();
     const cleanPass = password.trim();
 
-    // 1. Direct Administrator guaranteed match
+    // 1. Direct Administrator Authentication
     if (
       (cleanId === 'mecolomboadmin' || cleanId === 'mecolomboadmin@mecolombo.com' || cleanId === 'admin') &&
-      cleanPass === 'mecolombo'
+      cleanPass === 'adminme1234'
     ) {
       const adminUser = users.find(u => u.role === 'ADMIN') || initialUsers[0];
       setCurrentUser(adminUser);
@@ -48,20 +44,20 @@ export default function LoginPage() {
       return;
     }
 
-    // 2. Search against both dynamic users and initialUsers
+    // 2. Search against registered users
     const pool = [...users, ...initialUsers];
     const matchedUser = pool.find(u => {
       const uName = (u.username || '').toLowerCase();
       const uEmail = (u.email || '').toLowerCase();
-      const expectedPass = u.password || 'password123';
+      const expectedPass = u.password;
       const idMatch = uName === cleanId || uEmail === cleanId || uEmail.startsWith(`${cleanId}@`);
-      const passMatch = cleanPass === expectedPass || cleanPass === 'password123' || cleanPass === 'mecolombo';
+      const passMatch = cleanPass === expectedPass;
       return idMatch && passMatch;
     });
 
     if (matchedUser) {
       if (matchedUser.active === false) {
-        showToast('This account has been disabled by Administrator.', 'error');
+        showToast('This account has been disabled. Please contact your administrator.', 'error');
         setIsSubmitting(false);
         return;
       }
@@ -77,25 +73,9 @@ export default function LoginPage() {
         router.push('/engineering');
       }
     } else {
-      // Check if user exists but bad password
-      const userExists = pool.some(u => {
-        const uName = (u.username || '').toLowerCase();
-        const uEmail = (u.email || '').toLowerCase();
-        return uName === cleanId || uEmail === cleanId || uEmail.startsWith(`${cleanId}@`);
-      });
-
-      if (userExists) {
-        showToast('Invalid password. Default password is password123 (or mecolombo for admin).', 'error');
-      } else {
-        showToast(`Login ID "${identifier}" not found. Try mecolomboadmin, frontoffice, or chiefeng.`, 'error');
-      }
+      showToast('Invalid Login ID or password. Please try again.', 'error');
       setIsSubmitting(false);
     }
-  };
-
-  const handleQuickSelect = (uId: string, pass: string) => {
-    setIdentifier(uId);
-    setPassword(pass);
   };
 
   return (
@@ -121,7 +101,7 @@ export default function LoginPage() {
           Hotel Engineering Reporting Portal
         </p>
         <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-          Internal work order reporting, live sound alerts, and maintenance tracking
+          Secure work order reporting, live sound alerts, and maintenance tracking
         </p>
       </div>
 
@@ -148,7 +128,7 @@ export default function LoginPage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. mecolomboadmin / frontoffice / chiefeng"
+                  placeholder="Enter your username"
                   value={identifier}
                   onChange={e => setIdentifier(e.target.value)}
                   className="w-full text-xs font-bold pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-500"
@@ -165,7 +145,7 @@ export default function LoginPage() {
                 <input
                   type="password"
                   required
-                  placeholder="Enter password"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   className="w-full text-xs font-bold pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-500"
@@ -178,96 +158,14 @@ export default function LoginPage() {
               disabled={isSubmitting}
               className="w-full py-3 px-4 rounded-xl font-black text-xs text-white bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer mt-2"
             >
-              <span>{isSubmitting ? 'Signing In...' : 'SIGN IN TO PORTAL'}</span>
+              <span>{isSubmitting ? 'Authenticating...' : 'SIGN IN TO PORTAL'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
 
-          {/* 1-Tap Quick Fill Demo Credentials */}
-          <div className="pt-3 border-t border-slate-800 space-y-2">
-            <span className="text-[10px] font-black uppercase text-slate-400 block text-center">
-              1-Tap Quick Login Selection
-            </span>
-
-            <div className="grid grid-cols-3 gap-1.5 text-[10px]">
-              <button
-                type="button"
-                onClick={() => handleQuickSelect('mecolomboadmin', 'mecolombo')}
-                className={`p-2 rounded-lg border text-center transition-all cursor-pointer ${
-                  identifier === 'mecolomboadmin'
-                    ? 'bg-purple-950/80 border-purple-500 text-purple-200 font-bold'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-800'
-                }`}
-              >
-                <div className="font-bold text-white">Admin</div>
-                <div className="text-[9px] text-purple-400 truncate">mecolomboadmin</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickSelect('frontoffice', 'password123')}
-                className={`p-2 rounded-lg border text-center transition-all cursor-pointer ${
-                  identifier === 'frontoffice'
-                    ? 'bg-amber-950/80 border-amber-500 text-amber-200 font-bold'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-800'
-                }`}
-              >
-                <div className="font-bold text-white">Front Office</div>
-                <div className="text-[9px] text-amber-400 truncate">frontoffice</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickSelect('chiefeng', 'password123')}
-                className={`p-2 rounded-lg border text-center transition-all cursor-pointer ${
-                  identifier === 'chiefeng'
-                    ? 'bg-blue-950/80 border-blue-500 text-blue-200 font-bold'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-800'
-                }`}
-              >
-                <div className="font-bold text-white">Engineering</div>
-                <div className="text-[9px] text-blue-400 truncate">chiefeng</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickSelect('housekeeping', 'password123')}
-                className={`p-2 rounded-lg border text-center transition-all cursor-pointer ${
-                  identifier === 'housekeeping'
-                    ? 'bg-amber-950/80 border-amber-500 text-amber-200 font-bold'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-800'
-                }`}
-              >
-                <div className="font-bold text-white">Housekeeping</div>
-                <div className="text-[9px] text-amber-400 truncate">housekeeping</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickSelect('supervisor', 'password123')}
-                className={`p-2 rounded-lg border text-center transition-all cursor-pointer ${
-                  identifier === 'supervisor'
-                    ? 'bg-blue-950/80 border-blue-500 text-blue-200 font-bold'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-800'
-                }`}
-              >
-                <div className="font-bold text-white">Supervisor</div>
-                <div className="text-[9px] text-blue-400 truncate">supervisor</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickSelect('kasun', 'password123')}
-                className={`p-2 rounded-lg border text-center transition-all cursor-pointer ${
-                  identifier === 'kasun'
-                    ? 'bg-blue-950/80 border-blue-500 text-blue-200 font-bold'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-800'
-                }`}
-              >
-                <div className="font-bold text-white">Technician</div>
-                <div className="text-[9px] text-blue-400 truncate">kasun</div>
-              </button>
-            </div>
+          <div className="pt-3 border-t border-slate-800 flex items-center justify-center gap-1.5 text-slate-500 text-[11px]">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Authorized Hotel Personnel Only</span>
           </div>
         </div>
 
@@ -278,7 +176,7 @@ export default function LoginPage() {
             <span>Install as Mobile App (Android APK / iOS)</span>
           </div>
           <p className="text-[10px] text-slate-500">
-            Tap &ldquo;Add to Home screen&rdquo; or install the PWA for instant standalone mobile app access.
+            Install the Android APK or tap &ldquo;Add to Home screen&rdquo; for standalone mobile app access.
           </p>
         </div>
       </div>
