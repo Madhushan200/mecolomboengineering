@@ -170,7 +170,7 @@ export default function ExecutivePortalPage() {
                       className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
                         wo.hotelName === 'Rockwell'
                           ? 'bg-purple-100 text-purple-800 border-purple-200'
-                          : wo.hotelName === 'Neva'
+                          : (wo.hotelName === 'NEVA' || wo.hotelName === 'Neva')
                           ? 'bg-teal-100 text-teal-800 border-teal-200'
                           : 'bg-blue-100 text-blue-800 border-blue-200'
                       }`}

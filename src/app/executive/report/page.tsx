@@ -174,7 +174,7 @@ export default function ReportProblemPage() {
               <span>1. Select Hotel / Property *</span>
             </label>
             <div className="grid grid-cols-3 gap-2 text-xs">
-              {(['ME Colombo', 'Rockwell', 'Neva'] as HotelProperty[]).map(hotel => (
+              {(['ME Colombo', 'Rockwell', 'NEVA'] as HotelProperty[]).map(hotel => (
                 <button
                   key={hotel}
                   type="button"

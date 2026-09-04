@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useHotelEngineering } from '@/lib/store';
 import { initialUsers } from '@/lib/initial-data';
+import { fetchUserProfilesFromSupabase } from '@/lib/supabase-sync';
 import {
   Wrench,
   ArrowRight,
@@ -24,7 +25,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     enableAudio();
@@ -44,9 +45,9 @@ export default function LoginPage() {
       return;
     }
 
-    // 2. Search against registered users
+    // 2. Search against local registered users
     const pool = [...users, ...initialUsers];
-    const matchedUser = pool.find(u => {
+    let matchedUser = pool.find(u => {
       const uName = (u.username || '').toLowerCase();
       const uEmail = (u.email || '').toLowerCase();
       const expectedPass = u.password;
@@ -54,6 +55,25 @@ export default function LoginPage() {
       const passMatch = cleanPass === expectedPass;
       return idMatch && passMatch;
     });
+
+    // 3. Fallback: Live Supabase Cloud Database Lookup (ensures brand new accounts work on APK & Web immediately)
+    if (!matchedUser) {
+      try {
+        const liveProfiles = await fetchUserProfilesFromSupabase();
+        if (liveProfiles && liveProfiles.length > 0) {
+          matchedUser = liveProfiles.find(u => {
+            const uName = (u.username || '').toLowerCase();
+            const uEmail = (u.email || '').toLowerCase();
+            const expectedPass = u.password;
+            const idMatch = uName === cleanId || uEmail === cleanId || uEmail.startsWith(`${cleanId}@`);
+            const passMatch = cleanPass === expectedPass;
+            return idMatch && passMatch;
+          });
+        }
+      } catch (err) {
+        console.error('Remote login check error:', err);
+      }
+    }
 
     if (matchedUser) {
       if (matchedUser.active === false) {

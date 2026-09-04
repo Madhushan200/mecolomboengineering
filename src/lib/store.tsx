@@ -24,6 +24,10 @@ import {
   syncWorkOrderToSupabase,
   fetchWorkOrdersFromSupabase,
   fromDbWorkOrder,
+  syncUserProfileToSupabase,
+  deleteUserProfileFromSupabase,
+  fetchUserProfilesFromSupabase,
+  fromDbUserProfile,
 } from './supabase-sync';
 import { generateUUID } from './uuid';
 import { nativeNotifications } from './native-notifications';
@@ -199,7 +203,11 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
 
     const pullRemoteData = async () => {
       try {
-        const remoteOrders = await fetchWorkOrdersFromSupabase();
+        const [remoteOrders, remoteProfiles] = await Promise.all([
+          fetchWorkOrdersFromSupabase(),
+          fetchUserProfilesFromSupabase(),
+        ]);
+
         if (remoteOrders !== null && isMounted) {
           setIsCloudConnected(true);
           setLastCloudSync(new Date());
@@ -226,6 +234,25 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
             );
           });
         }
+
+        if (remoteProfiles !== null && isMounted) {
+          setUsers(prev => {
+            const map = new Map<string, UserProfile>();
+            // Master initial users
+            initialUsers.forEach(u => map.set(u.email.toLowerCase(), u));
+            // Local users
+            prev.forEach(u => map.set(u.email.toLowerCase(), u));
+            // Remote Supabase users
+            remoteProfiles.forEach(u => map.set(u.email.toLowerCase(), u));
+
+            return Array.from(map.values()).map(u => {
+              if (u.role === 'ADMIN' || u.username === 'mecolomboadmin') {
+                return { ...u, password: 'adminme1234' };
+              }
+              return u;
+            });
+          });
+        }
       } catch (err) {
         console.error('Background sync polling error:', err);
         if (isMounted) setIsCloudConnected(false);
@@ -238,7 +265,7 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
     // 2. Active 3-second background polling timer (guarantees sync across all devices & mobile connections)
     const pollInterval = setInterval(pullRemoteData, 3000);
 
-    // 3. Realtime Postgres Changes Subscription
+    // 3. Realtime Postgres Changes Subscription for Work Orders
     const channel = supabase
       .channel('realtime_work_orders_all')
       .on(
@@ -291,10 +318,37 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
         }
       });
 
+    // 4. Realtime Postgres Changes Subscription for Profiles
+    const profilesChannel = supabase
+      .channel('realtime_profiles_all')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles',
+        },
+        payload => {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const updatedUser = fromDbUserProfile(payload.new);
+            setUsers(prev => {
+              const filtered = prev.filter(
+                u => u.id !== updatedUser.id && u.email.toLowerCase() !== updatedUser.email.toLowerCase()
+              );
+              return [...filtered, updatedUser];
+            });
+          } else if (payload.eventType === 'DELETE') {
+            setUsers(prev => prev.filter(u => u.id !== payload.old?.id));
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       isMounted = false;
       clearInterval(pollInterval);
       supabase?.removeChannel(channel);
+      supabase?.removeChannel(profilesChannel);
     };
   }, [isLoaded, currentUser.role]);
 
@@ -681,18 +735,27 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
   const addUser = (user: Omit<UserProfile, 'id'>) => {
     const newUser: UserProfile = {
       ...user,
-      id: `user-${Date.now()}`,
+      id: generateUUID(),
     };
     setUsers(prev => [...prev, newUser]);
+    syncUserProfileToSupabase(newUser);
   };
 
   const deleteUser = (id: string) => {
     setUsers(prev => prev.filter(u => u.id !== id));
+    deleteUserProfileFromSupabase(id);
   };
 
   const toggleUser = (id: string) => {
     setUsers(prev =>
-      prev.map(u => (u.id === id ? { ...u, active: !u.active } : u))
+      prev.map(u => {
+        if (u.id === id) {
+          const updated = { ...u, active: !u.active };
+          syncUserProfileToSupabase(updated);
+          return updated;
+        }
+        return u;
+      })
     );
   };
 

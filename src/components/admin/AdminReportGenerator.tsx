@@ -150,7 +150,7 @@ export const AdminReportGenerator: React.FC = () => {
 
   // Hotel Breakdown Stats
   const hotelStats = useMemo(() => {
-    const hotels = ['ME Colombo', 'Rockwell', 'Neva'];
+    const hotels = ['ME Colombo', 'Rockwell', 'NEVA'];
     return hotels.map((hName) => {
       const hotelOrders = (
         filterMode === 'DAY'
@@ -158,7 +158,7 @@ export const AdminReportGenerator: React.FC = () => {
           : filterMode === 'MONTH'
           ? workOrders.filter((w) => w.reportedAt.slice(0, 7) === selectedMonth)
           : workOrders.filter((w) => w.reportedAt.slice(0, 10) >= rangeStart && w.reportedAt.slice(0, 10) <= rangeEnd)
-      ).filter((w) => (w.hotelName || 'ME Colombo') === hName);
+      ).filter((w) => (w.hotelName || 'ME Colombo') === hName || ((w.hotelName === 'Neva' || w.hotelName === 'NEVA') && hName === 'NEVA'));
 
       const tot = hotelOrders.length;
       const comp = hotelOrders.filter((w) => w.status === 'COMPLETED' || w.status === 'CLOSED').length;
@@ -388,10 +388,10 @@ export const AdminReportGenerator: React.FC = () => {
               onChange={(e) => setSelectedHotel(e.target.value)}
               className="w-full text-xs font-bold p-2.5 rounded-xl border border-blue-300 bg-blue-50/50 text-blue-900"
             >
-              <option value="ALL">All Properties (ME Colombo, Rockwell, Neva)</option>
+              <option value="ALL">All Properties (ME Colombo, Rockwell, NEVA)</option>
               <option value="ME Colombo">ME Colombo</option>
               <option value="Rockwell">Rockwell</option>
-              <option value="Neva">Neva</option>
+              <option value="NEVA">NEVA</option>
             </select>
           </div>
 
@@ -614,12 +614,12 @@ export const AdminReportGenerator: React.FC = () => {
                           className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${
                             hName === 'Rockwell'
                               ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                              : hName === 'Neva'
+                              : (hName === 'NEVA' || hName === 'Neva')
                               ? 'bg-teal-100 text-teal-800 border border-teal-200'
                               : 'bg-blue-100 text-blue-800 border border-blue-200'
                           }`}
                         >
-                          {hName}
+                          {hName === 'Neva' ? 'NEVA' : hName}
                         </span>
                       </td>
                       <td className="py-2 px-3 font-mono font-bold text-blue-700">{wo.workOrderNumber}</td>

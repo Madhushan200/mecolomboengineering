@@ -57,6 +57,10 @@ export function fromDbWorkOrder(row: any, history: any[] = []): WorkOrder {
     cleanDescription = cleanDescription.replace(/^\[Property:\s*([^\]]+)\]\s*\n?/i, '').trim();
   }
 
+  if (hotelName.toLowerCase() === 'neva') {
+    hotelName = 'NEVA';
+  }
+
   return {
     id: row.id,
     workOrderNumber: row.work_order_number,
@@ -161,3 +165,103 @@ export async function fetchWorkOrdersFromSupabase(): Promise<WorkOrder[] | null>
     return null;
   }
 }
+
+// ---------------------------------------------------------------------------
+// USER PROFILES LIVE CLOUD SYNC (Ensures all created logins work on APK & Web)
+// ---------------------------------------------------------------------------
+
+export function toDbUserProfile(user: UserProfile) {
+  const credentialsPayload = JSON.stringify({
+    username: (user.username || user.email.split('@')[0]).trim().toLowerCase(),
+    password: user.password || '',
+    phone: user.phone || '',
+  });
+
+  return {
+    id: isValidUUID(user.id) ? user.id : generateUUID(),
+    name: user.name.trim(),
+    email: user.email.trim().toLowerCase(),
+    role: user.role,
+    department: user.department || 'Administration',
+    phone: credentialsPayload,
+    active: user.active !== false,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+export function fromDbUserProfile(row: any): UserProfile {
+  let username = (row.email || '').split('@')[0].toLowerCase();
+  let password = '';
+  let phone = '';
+
+  if (row.phone) {
+    try {
+      const parsed = JSON.parse(row.phone);
+      if (parsed.username) username = parsed.username.toLowerCase();
+      if (parsed.password) password = parsed.password;
+      if (parsed.phone) phone = parsed.phone;
+    } catch {
+      phone = row.phone;
+    }
+  }
+
+  return {
+    id: row.id,
+    name: row.name,
+    username: username,
+    email: row.email,
+    password: password,
+    role: row.role,
+    department: row.department,
+    phone: phone,
+    active: row.active !== false,
+  };
+}
+
+export async function syncUserProfileToSupabase(user: UserProfile): Promise<boolean> {
+  if (!isSupabaseConfigured || !supabase) return false;
+  try {
+    const dbRecord = toDbUserProfile(user);
+    const { error } = await supabase.from('profiles').upsert(dbRecord, { onConflict: 'email' });
+    if (error) {
+      console.error('Supabase profile sync error:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Supabase profile sync exception:', err);
+    return false;
+  }
+}
+
+export async function deleteUserProfileFromSupabase(userId: string): Promise<boolean> {
+  if (!isSupabaseConfigured || !supabase) return false;
+  try {
+    const { error } = await supabase.from('profiles').delete().eq('id', userId);
+    if (error) {
+      console.error('Supabase profile delete error:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Supabase profile delete exception:', err);
+    return false;
+  }
+}
+
+export async function fetchUserProfilesFromSupabase(): Promise<UserProfile[] | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  try {
+    const { data, error } = await supabase.from('profiles').select('*');
+    if (error) {
+      console.error('Supabase fetch profiles error:', error);
+      return null;
+    }
+    if (!data) return [];
+    return data.map(fromDbUserProfile);
+  } catch (err) {
+    console.error('Supabase fetch profiles exception:', err);
+    return null;
+  }
+}
+
