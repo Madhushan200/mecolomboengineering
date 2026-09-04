@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useHotelEngineering } from '@/lib/store';
-import { LocationOption, CategoryOption, Priority } from '@/lib/types';
+import { LocationOption, CategoryOption, Priority, HotelProperty } from '@/lib/types';
 import { suggestSimplePriority } from '@/lib/priority-engine';
 import { PriorityBadge } from '@/components/ui/PriorityBadge';
 import {
@@ -25,6 +25,7 @@ export default function ReportProblemPage() {
   const { createWorkOrder, currentUser, enableAudio } = useHotelEngineering();
   const { showToast } = useToast();
 
+  const [selectedHotel, setSelectedHotel] = useState<HotelProperty>('ME Colombo');
   const [location, setLocation] = useState<LocationOption>('Guest Room');
   const [roomNumber, setRoomNumber] = useState('305');
   const [category, setCategory] = useState<CategoryOption>('AC');
@@ -34,7 +35,7 @@ export default function ReportProblemPage() {
   const [guestAffected, setGuestAffected] = useState(true);
 
   // Success state
-  const [submittedWo, setSubmittedWo] = useState<{ id: string; workOrderNumber: string } | null>(
+  const [submittedWo, setSubmittedWo] = useState<{ id: string; workOrderNumber: string; hotelName?: string } | null>(
     null
   );
 
@@ -69,6 +70,7 @@ export default function ReportProblemPage() {
     enableAudio();
 
     const created = createWorkOrder({
+      hotelName: selectedHotel,
       reportedBy: currentUser.name,
       reportedById: currentUser.id,
       departmentName: currentUser.department,
@@ -84,8 +86,8 @@ export default function ReportProblemPage() {
       priorityRationale: prioritySuggestion.rationale,
     });
 
-    setSubmittedWo({ id: created.id, workOrderNumber: created.workOrderNumber });
-    showToast(`Request ${created.workOrderNumber} submitted successfully!`, 'success');
+    setSubmittedWo({ id: created.id, workOrderNumber: created.workOrderNumber, hotelName: selectedHotel });
+    showToast(`Request ${created.workOrderNumber} (${selectedHotel}) submitted successfully!`, 'success');
   };
 
   // If submitted successfully, show confirmation screen
@@ -97,9 +99,14 @@ export default function ReportProblemPage() {
         </div>
 
         <div className="space-y-2">
-          <span className="text-xs font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-            Request Sent to Engineering
-          </span>
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-xs font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+              Request Sent to Engineering
+            </span>
+            <span className="text-xs font-black uppercase tracking-wider text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+              🏨 {submittedWo.hotelName || 'ME Colombo'}
+            </span>
+          </div>
           <h2 className="text-2xl font-black text-slate-900">
             Request Submitted Successfully!
           </h2>
@@ -107,7 +114,7 @@ export default function ReportProblemPage() {
             {submittedWo.workOrderNumber}
           </div>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            The engineering room sound chime has been triggered. An engineer will accept and assign a technician shortly.
+            The engineering room sound chime has been triggered for <strong>{submittedWo.hotelName || 'ME Colombo'}</strong>. An engineer will accept and assign a technician shortly.
           </p>
         </div>
 
@@ -159,10 +166,35 @@ export default function ReportProblemPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* 1. Location Picker */}
+          {/* 1. Hotel / Property Selector */}
+          <div className="space-y-2">
+            <label className="block text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+              <Building className="w-4 h-4 text-blue-600" />
+              <span>1. Select Hotel / Property *</span>
+            </label>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              {(['ME Colombo', 'Rockwell', 'Neva'] as HotelProperty[]).map(hotel => (
+                <button
+                  key={hotel}
+                  type="button"
+                  onClick={() => setSelectedHotel(hotel)}
+                  className={`py-3 px-3 rounded-xl font-bold border transition-all text-center flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                    selectedHotel === hotel
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20'
+                      : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                  }`}
+                >
+                  <span className="text-base">🏨</span>
+                  <span className="font-black tracking-tight">{hotel}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 2. Location Picker */}
           <div className="space-y-2">
             <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
-              1. Where is the problem located? *
+              2. Where is the problem located? *
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -199,10 +231,10 @@ export default function ReportProblemPage() {
             </div>
           </div>
 
-          {/* 2. Category Picker */}
+          {/* 3. Category Picker */}
           <div className="space-y-2">
             <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
-              2. Maintenance Category *
+              3. Maintenance Category *
             </label>
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 text-xs">
               {(
@@ -234,11 +266,11 @@ export default function ReportProblemPage() {
             </div>
           </div>
 
-          {/* 3. Short Title & Description */}
+          {/* 4. Short Title & Description */}
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5">
-                3. Short Problem Title *
+                4. Short Problem Title *
               </label>
               <input
                 type="text"
@@ -252,7 +284,7 @@ export default function ReportProblemPage() {
 
             <div>
               <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5">
-                4. Description / Details (Optional)
+                5. Description / Details (Optional)
               </label>
               <textarea
                 rows={3}
@@ -264,7 +296,7 @@ export default function ReportProblemPage() {
             </div>
           </div>
 
-          {/* 4. Guest Affected Flag */}
+          {/* 5. Guest Affected Flag */}
           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
             <div>
               <span className="text-xs font-black text-slate-900 block">Is a guest currently affected?</span>

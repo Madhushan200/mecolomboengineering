@@ -53,6 +53,7 @@ interface EngineeringContextType {
   
   // Work Order Workflow
   createWorkOrder: (order: {
+    hotelName?: any;
     reportedBy: string;
     reportedById?: string;
     departmentName: string;
@@ -347,6 +348,7 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
 
   // 1. Create Work Order
   const createWorkOrder = (data: {
+    hotelName?: any;
     reportedBy: string;
     reportedById?: string;
     departmentName: string;
@@ -368,6 +370,7 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
     const newOrder: WorkOrder = {
       id: newId,
       workOrderNumber: newWoNumber,
+      hotelName: data.hotelName || settings.hotelName || 'ME Colombo',
       reportedBy: data.reportedBy,
       reportedById: data.reportedById || currentUser.id,
       departmentName: data.departmentName,

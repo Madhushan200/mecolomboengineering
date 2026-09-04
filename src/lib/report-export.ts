@@ -5,21 +5,27 @@ import { WorkOrder } from './types';
 // 1. Export to Excel (.xlsx) using ExcelJS
 export async function exportReportToExcel(
   workOrders: WorkOrder[],
-  reportTitle: string = 'ME Colombo Engineering Report',
-  dateLabel: string = ''
+  reportTitle: string = 'Hotel Engineering Report',
+  dateLabel: string = '',
+  hotelFilter: string = 'ALL'
 ) {
   try {
     const ExcelJS = await import('exceljs');
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'ME Colombo Hotel Engineering';
+    workbook.creator = 'Hotel Engineering Management System';
     workbook.created = new Date();
 
     const worksheet = workbook.addWorksheet('Work Orders Report');
 
+    const brandHeader =
+      hotelFilter === 'ALL'
+        ? 'ME COLOMBO / ROCKWELL / NEVA — HOTEL ENGINEERING OPERATIONS'
+        : `${hotelFilter.toUpperCase()} — HOTEL ENGINEERING OPERATIONS`;
+
     // Title Row
-    worksheet.mergeCells('A1', 'K1');
+    worksheet.mergeCells('A1', 'L1');
     const titleCell = worksheet.getCell('A1');
-    titleCell.value = `ME COLOMBO — ${reportTitle.toUpperCase()}`;
+    titleCell.value = brandHeader;
     titleCell.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
     titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
     titleCell.fill = {
@@ -30,9 +36,9 @@ export async function exportReportToExcel(
     worksheet.getRow(1).height = 30;
 
     // Subtitle / Date Range
-    worksheet.mergeCells('A2', 'K2');
+    worksheet.mergeCells('A2', 'L2');
     const subCell = worksheet.getCell('A2');
-    subCell.value = `Generated: ${new Date().toLocaleDateString()} | Period: ${dateLabel || 'All Time'} | Total Records: ${workOrders.length}`;
+    subCell.value = `Generated: ${new Date().toLocaleDateString()} | Period: ${dateLabel || 'All Time'} | Property Filter: ${hotelFilter} | Total Records: ${workOrders.length}`;
     subCell.font = { name: 'Arial', size: 10, italic: true, color: { argb: 'FF475569' } };
     subCell.alignment = { vertical: 'middle', horizontal: 'center' };
     worksheet.getRow(2).height = 20;
@@ -42,6 +48,7 @@ export async function exportReportToExcel(
 
     // Table Headers
     const headers = [
+      'Hotel / Property',
       'WO Number',
       'Reported Date/Time',
       'Department',
@@ -76,6 +83,7 @@ export async function exportReportToExcel(
     // Populate Data Rows
     workOrders.forEach((wo) => {
       const row = worksheet.addRow([
+        wo.hotelName || 'ME Colombo',
         wo.workOrderNumber,
         new Date(wo.reportedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }),
         wo.departmentName,
@@ -92,15 +100,15 @@ export async function exportReportToExcel(
       row.height = 20;
       row.eachCell((cell, colNum) => {
         cell.font = { name: 'Arial', size: 9 };
-        cell.alignment = { vertical: 'middle', wrapText: colNum === 8 || colNum === 9 || colNum === 11 };
+        cell.alignment = { vertical: 'middle', wrapText: colNum === 9 || colNum === 10 || colNum === 12 };
         cell.border = {
           bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
           left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
           right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
         };
 
-        // Priority column color highlight
-        if (colNum === 6) {
+        // Priority column color highlight (Column G is index 7)
+        if (colNum === 7) {
           if (cell.value === 'P1') cell.font = { bold: true, color: { argb: 'FFDC2626' } };
           if (cell.value === 'P2') cell.font = { bold: true, color: { argb: 'FFEA580C' } };
           if (cell.value === 'P3') cell.font = { bold: true, color: { argb: 'FFCA8A04' } };
@@ -111,6 +119,7 @@ export async function exportReportToExcel(
 
     // Column Widths
     worksheet.columns = [
+      { width: 16 }, // Hotel / Property
       { width: 16 }, // WO Number
       { width: 20 }, // Date
       { width: 18 }, // Dept
@@ -132,7 +141,8 @@ export async function exportReportToExcel(
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ME_Colombo_${reportTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    const filePrefix = hotelFilter === 'ALL' ? 'Multi_Property' : hotelFilter.replace(/\s+/g, '_');
+    a.download = `${filePrefix}_${reportTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     a.click();
     window.URL.revokeObjectURL(url);
   } catch (err) {
@@ -150,7 +160,8 @@ export async function exportReportToPdf(
     completed: number;
     p1Count: number;
     avgSpeed: string;
-  }
+  },
+  hotelFilter: string = 'ALL'
 ) {
   try {
     const { jsPDF } = await import('jspdf');
@@ -162,12 +173,17 @@ export async function exportReportToPdf(
     doc.setFillColor(30, 58, 138); // Navy
     doc.rect(0, 0, 297, 24, 'F');
 
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('ME COLOMBO HOTEL — ENGINEERING COMMAND', 14, 12);
+    const mainTitle =
+      hotelFilter === 'ALL'
+        ? 'ME COLOMBO / ROCKWELL / NEVA — ENGINEERING COMMAND'
+        : `${hotelFilter.toUpperCase()} — ENGINEERING COMMAND`;
 
-    doc.setFontSize(10);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(mainTitle, 14, 11);
+
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.text(reportTitle.toUpperCase(), 14, 18);
 
@@ -177,7 +193,7 @@ export async function exportReportToPdf(
     doc.setTextColor(30, 41, 59);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Report Period: ${dateLabel || 'All Time'}`, 14, 32);
+    doc.text(`Report Period: ${dateLabel || 'All Time'} | Property: ${hotelFilter}`, 14, 32);
 
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
@@ -189,6 +205,7 @@ export async function exportReportToPdf(
 
     // Table Data
     const tableRows = workOrders.map((wo) => [
+      wo.hotelName || 'ME Colombo',
       wo.workOrderNumber,
       new Date(wo.reportedAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
       wo.departmentName,
@@ -205,6 +222,7 @@ export async function exportReportToPdf(
       startY: 44,
       head: [
         [
+          'Hotel',
           'WO #',
           'Reported',
           'Department',
@@ -231,20 +249,22 @@ export async function exportReportToPdf(
         valign: 'middle',
       },
       columnStyles: {
-        0: { cellWidth: 22 },
-        1: { cellWidth: 24 },
+        0: { cellWidth: 20 },
+        1: { cellWidth: 20 },
         2: { cellWidth: 22 },
         3: { cellWidth: 20 },
         4: { cellWidth: 18 },
-        5: { cellWidth: 14 },
-        6: { cellWidth: 18 },
-        7: { cellWidth: 45 },
-        8: { cellWidth: 25 },
-        9: { cellWidth: 50 },
+        5: { cellWidth: 16 },
+        6: { cellWidth: 14 },
+        7: { cellWidth: 16 },
+        8: { cellWidth: 43 },
+        9: { cellWidth: 24 },
+        10: { cellWidth: 46 },
       },
     });
 
-    doc.save(`ME_Colombo_${reportTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    const filePrefix = hotelFilter === 'ALL' ? 'Multi_Property' : hotelFilter.replace(/\s+/g, '_');
+    doc.save(`${filePrefix}_${reportTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`);
   } catch (err) {
     console.error('Error generating PDF report:', err);
   }

@@ -31,6 +31,9 @@ export const AdminReportGenerator: React.FC = () => {
   // Filter Mode: 'DAY' | 'MONTH' | 'RANGE'
   const [filterMode, setFilterMode] = useState<'DAY' | 'MONTH' | 'RANGE'>('DAY');
 
+  // Property / Hotel Filter
+  const [selectedHotel, setSelectedHotel] = useState<string>('ALL');
+
   // Single Day
   const [selectedDay, setSelectedDay] = useState<string>(new Date().toISOString().slice(0, 10));
 
@@ -74,6 +77,10 @@ export const AdminReportGenerator: React.FC = () => {
       const woDate = new Date(wo.reportedAt);
       const woDayStr = wo.reportedAt.slice(0, 10);
       const woMonthStr = wo.reportedAt.slice(0, 7);
+      const woHotel = wo.hotelName || 'ME Colombo';
+
+      // Hotel / Property filter
+      if (selectedHotel !== 'ALL' && woHotel !== selectedHotel) return false;
 
       // Date match
       if (filterMode === 'DAY') {
@@ -105,6 +112,7 @@ export const AdminReportGenerator: React.FC = () => {
         const match =
           wo.workOrderNumber.toLowerCase().includes(q) ||
           wo.title.toLowerCase().includes(q) ||
+          woHotel.toLowerCase().includes(q) ||
           wo.location.toLowerCase().includes(q) ||
           (wo.roomNumber && wo.roomNumber.toLowerCase().includes(q)) ||
           wo.departmentName.toLowerCase().includes(q) ||
@@ -119,6 +127,7 @@ export const AdminReportGenerator: React.FC = () => {
     return { filteredOrders: result, dateRangeLabel: label };
   }, [
     workOrders,
+    selectedHotel,
     filterMode,
     selectedDay,
     selectedMonth,
@@ -138,6 +147,34 @@ export const AdminReportGenerator: React.FC = () => {
   const p3Count = filteredOrders.filter((w) => w.priority === 'P3').length;
   const p4Count = filteredOrders.filter((w) => w.priority === 'P4').length;
   const resolutionRate = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+
+  // Hotel Breakdown Stats
+  const hotelStats = useMemo(() => {
+    const hotels = ['ME Colombo', 'Rockwell', 'Neva'];
+    return hotels.map((hName) => {
+      const hotelOrders = (
+        filterMode === 'DAY'
+          ? workOrders.filter((w) => w.reportedAt.slice(0, 10) === selectedDay)
+          : filterMode === 'MONTH'
+          ? workOrders.filter((w) => w.reportedAt.slice(0, 7) === selectedMonth)
+          : workOrders.filter((w) => w.reportedAt.slice(0, 10) >= rangeStart && w.reportedAt.slice(0, 10) <= rangeEnd)
+      ).filter((w) => (w.hotelName || 'ME Colombo') === hName);
+
+      const tot = hotelOrders.length;
+      const comp = hotelOrders.filter((w) => w.status === 'COMPLETED' || w.status === 'CLOSED').length;
+      const p1 = hotelOrders.filter((w) => w.priority === 'P1').length;
+      const p2 = hotelOrders.filter((w) => w.priority === 'P2').length;
+      return {
+        hotel: hName,
+        total: tot,
+        completed: comp,
+        pending: tot - comp,
+        p1,
+        p2,
+        rate: tot > 0 ? Math.round((comp / tot) * 100) : 0,
+      };
+    });
+  }, [workOrders, filterMode, selectedDay, selectedMonth, rangeStart, rangeEnd]);
 
   // Department counts
   const deptStats = useMemo(() => {
@@ -172,7 +209,7 @@ export const AdminReportGenerator: React.FC = () => {
       showToast('No work orders found for the selected period.', 'warning');
       return;
     }
-    exportReportToExcel(filteredOrders, 'Engineering_Operations_Report', dateRangeLabel);
+    exportReportToExcel(filteredOrders, 'Engineering_Operations_Report', dateRangeLabel, selectedHotel);
     showToast('Excel report generated and downloaded!', 'success');
   };
 
@@ -181,12 +218,18 @@ export const AdminReportGenerator: React.FC = () => {
       showToast('No work orders found for the selected period.', 'warning');
       return;
     }
-    exportReportToPdf(filteredOrders, 'Engineering Operations & Maintenance Report', dateRangeLabel, {
-      total,
-      completed: completedCount,
-      p1Count,
-      avgSpeed: '12 mins',
-    });
+    exportReportToPdf(
+      filteredOrders,
+      'Engineering Operations & Maintenance Report',
+      dateRangeLabel,
+      {
+        total,
+        completed: completedCount,
+        p1Count,
+        avgSpeed: '12 mins',
+      },
+      selectedHotel
+    );
     showToast('PDF report generated and downloaded!', 'success');
   };
 
@@ -235,7 +278,7 @@ export const AdminReportGenerator: React.FC = () => {
         </div>
       </div>
 
-      {/* 1. Date / Month Filter Controls */}
+      {/* 1. Date / Month & Hotel Filter Controls */}
       <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-3.5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           {/* Mode Selector */}
@@ -290,7 +333,7 @@ export const AdminReportGenerator: React.FC = () => {
         </div>
 
         {/* Inputs depending on Filter Mode */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-200/60">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-2 border-t border-slate-200/60">
           {filterMode === 'DAY' && (
             <div>
               <label className="text-[10px] font-black uppercase text-slate-500 block mb-1">Select Specific Day</label>
@@ -339,6 +382,20 @@ export const AdminReportGenerator: React.FC = () => {
           )}
 
           <div>
+            <label className="text-[10px] font-black uppercase text-slate-500 block mb-1">🏨 Hotel / Property</label>
+            <select
+              value={selectedHotel}
+              onChange={(e) => setSelectedHotel(e.target.value)}
+              className="w-full text-xs font-bold p-2.5 rounded-xl border border-blue-300 bg-blue-50/50 text-blue-900"
+            >
+              <option value="ALL">All Properties (ME Colombo, Rockwell, Neva)</option>
+              <option value="ME Colombo">ME Colombo</option>
+              <option value="Rockwell">Rockwell</option>
+              <option value="Neva">Neva</option>
+            </select>
+          </div>
+
+          <div>
             <label className="text-[10px] font-black uppercase text-slate-500 block mb-1">Filter Department</label>
             <select
               value={selectedDept}
@@ -371,12 +428,72 @@ export const AdminReportGenerator: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. Executive KPI Summary Cards */}
+      {/* 2. Hotel Property Performance Breakdown */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+            <Building className="w-4 h-4 text-blue-600" />
+            <span>Property Performance Analytics ({dateRangeLabel})</span>
+          </span>
+          {selectedHotel !== 'ALL' && (
+            <button
+              onClick={() => setSelectedHotel('ALL')}
+              className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+            >
+              Show All Properties
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {hotelStats.map((hs) => {
+            const isSelected = selectedHotel === hs.hotel;
+            return (
+              <button
+                key={hs.hotel}
+                type="button"
+                onClick={() => setSelectedHotel(selectedHotel === hs.hotel ? 'ALL' : hs.hotel)}
+                className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500/20 shadow-sm'
+                    : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100/80'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-slate-900 flex items-center gap-1">
+                    <span>🏨</span> {hs.hotel}
+                  </span>
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      hs.rate >= 80 ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
+                    }`}
+                  >
+                    {hs.rate}% Solved
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <span className="text-2xl font-black text-slate-900">{hs.total}</span>
+                  <span className="text-xs text-slate-500 font-medium">Tickets Logged</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2 pt-2 border-t border-slate-200/60 font-mono">
+                  <span className="text-emerald-600 font-bold">Done: {hs.completed}</span>
+                  <span className="text-amber-600 font-bold">Pending: {hs.pending}</span>
+                  {hs.p1 > 0 && <span className="text-red-600 font-bold">P1: {hs.p1}</span>}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 3. Executive KPI Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
           <span className="text-[10px] font-bold text-slate-400 uppercase">Total Logged</span>
           <div className="text-2xl font-black text-slate-900 mt-0.5">{total}</div>
-          <span className="text-[10px] text-slate-500">{dateRangeLabel}</span>
+          <span className="text-[10px] text-slate-500">
+            {selectedHotel === 'ALL' ? 'All Properties' : selectedHotel}
+          </span>
         </div>
 
         <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200">
@@ -398,7 +515,7 @@ export const AdminReportGenerator: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. Department & Technician Workload Tables */}
+      {/* 4. Department & Technician Workload Tables */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Department Breakdown */}
         <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
@@ -447,17 +564,17 @@ export const AdminReportGenerator: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. Table Preview & Search */}
+      {/* 5. Table Preview & Search */}
       <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between gap-3">
           <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
-            Work Order Records ({total})
+            Work Order Records ({total}) {selectedHotel !== 'ALL' && `— ${selectedHotel}`}
           </h4>
           <div className="relative max-w-xs w-full">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="Search work order # or title..."
+              placeholder="Search WO #, title, property..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full text-xs font-medium pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 bg-white"
@@ -469,6 +586,7 @@ export const AdminReportGenerator: React.FC = () => {
           <table className="w-full text-left text-xs text-slate-700">
             <thead className="bg-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-500 border-b border-slate-200">
               <tr>
+                <th className="py-2.5 px-3">Property</th>
                 <th className="py-2.5 px-3">WO #</th>
                 <th className="py-2.5 px-3">Date</th>
                 <th className="py-2.5 px-3">Dept</th>
@@ -482,29 +600,45 @@ export const AdminReportGenerator: React.FC = () => {
             <tbody className="divide-y divide-slate-100">
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-xs text-slate-400">
-                    No work orders found for the selected date filters.
+                  <td colSpan={9} className="py-8 text-center text-xs text-slate-400">
+                    No work orders found for the selected hotel and date filters.
                   </td>
                 </tr>
               ) : (
-                filteredOrders.slice(0, 50).map((wo) => (
-                  <tr key={wo.id} className="hover:bg-slate-50/80">
-                    <td className="py-2 px-3 font-mono font-bold text-blue-700">{wo.workOrderNumber}</td>
-                    <td className="py-2 px-3 text-slate-500">
-                      {new Date(wo.reportedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                    </td>
-                    <td className="py-2 px-3 font-medium">{wo.departmentName}</td>
-                    <td className="py-2 px-3">{wo.roomNumber ? `Room ${wo.roomNumber}` : wo.location}</td>
-                    <td className="py-2 px-3">
-                      <PriorityBadge priority={wo.priority} size="sm" />
-                    </td>
-                    <td className="py-2 px-3">
-                      <StatusBadge status={wo.status} size="sm" />
-                    </td>
-                    <td className="py-2 px-3 font-medium max-w-xs truncate">{wo.title}</td>
-                    <td className="py-2 px-3 text-slate-600">{wo.assignedTechnicianName || '-'}</td>
-                  </tr>
-                ))
+                filteredOrders.slice(0, 50).map((wo) => {
+                  const hName = wo.hotelName || 'ME Colombo';
+                  return (
+                    <tr key={wo.id} className="hover:bg-slate-50/80">
+                      <td className="py-2 px-3">
+                        <span
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${
+                            hName === 'Rockwell'
+                              ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                              : hName === 'Neva'
+                              ? 'bg-teal-100 text-teal-800 border border-teal-200'
+                              : 'bg-blue-100 text-blue-800 border border-blue-200'
+                          }`}
+                        >
+                          {hName}
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 font-mono font-bold text-blue-700">{wo.workOrderNumber}</td>
+                      <td className="py-2 px-3 text-slate-500 whitespace-nowrap">
+                        {new Date(wo.reportedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                      </td>
+                      <td className="py-2 px-3 font-medium">{wo.departmentName}</td>
+                      <td className="py-2 px-3">{wo.roomNumber ? `Room ${wo.roomNumber}` : wo.location}</td>
+                      <td className="py-2 px-3">
+                        <PriorityBadge priority={wo.priority} size="sm" />
+                      </td>
+                      <td className="py-2 px-3">
+                        <StatusBadge status={wo.status} size="sm" />
+                      </td>
+                      <td className="py-2 px-3 font-medium max-w-xs truncate">{wo.title}</td>
+                      <td className="py-2 px-3 text-slate-600">{wo.assignedTechnicianName || '-'}</td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

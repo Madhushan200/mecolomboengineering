@@ -112,9 +112,12 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ workOrder,
               <Wrench className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-mono text-xs font-black text-slate-700">
                   {workOrder.workOrderNumber || workOrder.id}
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-200">
+                  🏨 {workOrder.hotelName || 'ME Colombo'}
                 </span>
                 <PriorityBadge priority={workOrder.priority} />
                 <StatusBadge status={workOrder.status} />
@@ -135,7 +138,11 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ workOrder,
         {/* Modal Body */}
         <div className="p-5 overflow-y-auto space-y-5 text-slate-800">
           {/* Defect Information Card */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200/70">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200/70">
+            <div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase">Property</span>
+              <p className="text-xs font-bold text-blue-700 mt-0.5">{workOrder.hotelName || 'ME Colombo'}</p>
+            </div>
             <div>
               <span className="text-[10px] font-bold text-slate-400 uppercase">Location</span>
               <p className="text-xs font-bold text-slate-800 mt-0.5">{workOrder.location}</p>

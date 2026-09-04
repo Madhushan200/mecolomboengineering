@@ -33,6 +33,8 @@ export type CategoryOption =
   | 'Civil'
   | 'Other';
 
+export type HotelProperty = 'ME Colombo' | 'Rockwell' | 'Neva';
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -74,6 +76,7 @@ export interface StatusHistoryItem {
 export interface WorkOrder {
   id: string;
   workOrderNumber: string; // e.g. WO-2026-0045
+  hotelName?: HotelProperty | string; // 'ME Colombo' | 'Rockwell' | 'Neva'
   reportedBy: string;
   reportedById?: string;
   departmentId?: string;

@@ -4,6 +4,13 @@ import { isValidUUID, generateUUID } from './uuid';
 
 // Convert camelCase WorkOrder to snake_case DB record
 export function toDbWorkOrder(wo: WorkOrder) {
+  // Store hotel prefix in description if not already present, ensuring full cross-device sync without requiring DB schema migration
+  let dbDescription = wo.description || '';
+  const hotel = wo.hotelName || 'ME Colombo';
+  if (!dbDescription.startsWith('[Property:')) {
+    dbDescription = `[Property: ${hotel}]\n${dbDescription}`.trim();
+  }
+
   return {
     id: isValidUUID(wo.id) ? wo.id : generateUUID(),
     work_order_number: wo.workOrderNumber,
@@ -15,7 +22,7 @@ export function toDbWorkOrder(wo: WorkOrder) {
     room_number: wo.roomNumber || null,
     category: wo.category,
     title: wo.title,
-    description: wo.description || null,
+    description: dbDescription || null,
     photo_url: wo.photoUrl || null,
     after_photo_url: wo.afterPhotoUrl || null,
     guest_affected: wo.guestAffected,
@@ -40,9 +47,19 @@ export function toDbWorkOrder(wo: WorkOrder) {
 
 // Convert snake_case DB record to camelCase WorkOrder
 export function fromDbWorkOrder(row: any, history: any[] = []): WorkOrder {
+  let hotelName = row.hotel_name || 'ME Colombo';
+  let cleanDescription = row.description || '';
+
+  const propertyMatch = cleanDescription.match(/^\[Property:\s*([^\]]+)\]\s*\n?/i);
+  if (propertyMatch) {
+    hotelName = propertyMatch[1].trim();
+    cleanDescription = cleanDescription.replace(/^\[Property:\s*([^\]]+)\]\s*\n?/i, '').trim();
+  }
+
   return {
     id: row.id,
     workOrderNumber: row.work_order_number,
+    hotelName: hotelName,
     reportedBy: row.reported_by,
     reportedById: row.reported_by_id,
     departmentId: row.department_id,
@@ -51,7 +68,7 @@ export function fromDbWorkOrder(row: any, history: any[] = []): WorkOrder {
     roomNumber: row.room_number,
     category: row.category,
     title: row.title,
-    description: row.description || '',
+    description: cleanDescription,
     photoUrl: row.photo_url,
     afterPhotoUrl: row.after_photo_url,
     guestAffected: Boolean(row.guest_affected),

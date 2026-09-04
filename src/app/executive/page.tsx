@@ -159,11 +159,22 @@ export default function ExecutivePortalPage() {
                 key={wo.id}
                 className="card-base p-5 space-y-4 hover:border-blue-300 transition-all shadow-sm"
               >
-                {/* Header: WO#, Location, Priority, Status */}
+                {/* Header: WO#, Property, Location, Priority, Status */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                  <div className="flex items-center gap-2.5 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono font-black text-sm text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-200">
                       {wo.workOrderNumber}
+                    </span>
+                    <span
+                      className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                        wo.hotelName === 'Rockwell'
+                          ? 'bg-purple-100 text-purple-800 border-purple-200'
+                          : wo.hotelName === 'Neva'
+                          ? 'bg-teal-100 text-teal-800 border-teal-200'
+                          : 'bg-blue-100 text-blue-800 border-blue-200'
+                      }`}
+                    >
+                      🏨 {wo.hotelName || 'ME Colombo'}
                     </span>
                     <span className="text-xs font-bold text-slate-800">
                       📍 {wo.location} {wo.roomNumber ? `• Room ${wo.roomNumber}` : ''}

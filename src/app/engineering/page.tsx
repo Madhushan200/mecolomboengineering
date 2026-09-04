@@ -233,9 +233,14 @@ export default function EngineeringPortalPage() {
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="font-mono font-bold text-xs text-red-700 bg-red-100 px-2 py-0.5 rounded">
-                      {p1.workOrderNumber}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono font-bold text-xs text-red-700 bg-red-100 px-2 py-0.5 rounded">
+                        {p1.workOrderNumber}
+                      </span>
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200">
+                        🏨 {p1.hotelName || 'ME Colombo'}
+                      </span>
+                    </div>
                     <StatusBadge status={p1.status} size="sm" />
                   </div>
                   <h4 className="font-black text-slate-900 text-sm mt-1">{p1.title}</h4>
@@ -333,9 +338,20 @@ export default function EngineeringPortalPage() {
               >
                 {/* Header Row */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                  <div className="flex items-center gap-2.5 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono font-black text-xs text-blue-700 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200">
                       {wo.workOrderNumber}
+                    </span>
+                    <span
+                      className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                        wo.hotelName === 'Rockwell'
+                          ? 'bg-purple-100 text-purple-800 border-purple-200'
+                          : wo.hotelName === 'Neva'
+                          ? 'bg-teal-100 text-teal-800 border-teal-200'
+                          : 'bg-blue-100 text-blue-800 border-blue-200'
+                      }`}
+                    >
+                      🏨 {wo.hotelName || 'ME Colombo'}
                     </span>
                     <PriorityBadge priority={wo.priority} size="sm" />
                     <StatusBadge status={wo.status} size="sm" />
