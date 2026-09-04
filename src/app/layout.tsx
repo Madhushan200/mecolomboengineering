@@ -8,18 +8,22 @@ import { Navbar } from '@/components/layout/Navbar';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'ME Colombo Engineering Portal',
-  description: 'Fast, modern hotel internal engineering and maintenance request portal for ME Colombo.',
+  title: 'Ceyvista Engineering | Hotel Engineering & Maintenance Portal',
+  description: 'Fast, modern hotel engineering and maintenance request portal by Ceyvista Engineering.',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/favicon.png',
+    apple: '/icon-192.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'ME Engineering',
+    title: 'Ceyvista Engineering',
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#2563eb',
+  themeColor: '#0a192f',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,

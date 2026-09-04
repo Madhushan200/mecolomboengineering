@@ -99,14 +99,22 @@ export function Navbar() {
           {/* Left: Hotel Identity */}
           <Link
             href={isExecutive ? '/executive' : isEngineering ? '/engineering' : '/admin'}
-            className="flex items-center gap-3"
+            className="flex items-center gap-2.5"
           >
-            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black shadow-md shadow-blue-500/20 shrink-0">
-              <Wrench className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm shrink-0 border border-slate-200/80 bg-slate-900 flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo.png"
+                alt="Ceyvista Engineering Logo"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
             </div>
             <div>
               <span className="text-sm font-black text-slate-900 tracking-tight block leading-tight">
-                {settings.hotelName}
+                {settings.hotelName || 'Ceyvista Engineering'}
               </span>
               <span className="text-[10px] text-blue-600 font-bold uppercase tracking-wider block">
                 {isExecutive

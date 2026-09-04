@@ -106,17 +106,22 @@ export default function LoginPage() {
 
       {/* Header Branding */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center z-10 mb-6">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 text-white shadow-xl shadow-blue-500/20 mb-3 animate-scale-up">
-          <Wrench className="w-8 h-8" />
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl overflow-hidden shadow-2xl shadow-blue-500/30 mb-3 border border-white/15 bg-slate-900 animate-scale-up">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="Ceyvista Engineering Logo"
+            className="w-full h-full object-cover"
+          />
         </div>
         <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-          {settings.hotelName}
+          {settings.hotelName || 'Ceyvista Engineering'}
         </h1>
         <p className="mt-1 text-xs sm:text-sm text-blue-400 font-bold tracking-widest uppercase">
           Hotel Engineering Reporting Portal
         </p>
         <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-          Internal work order reporting, sound alerts, and maintenance tracking
+          Internal work order reporting, live sound alerts, and maintenance tracking
         </p>
       </div>
 

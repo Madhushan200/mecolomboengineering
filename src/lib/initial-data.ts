@@ -7,10 +7,10 @@ import {
 } from './types';
 
 export const initialSystemSettings: SystemSettings = {
-  hotelName: 'ME Colombo',
-  hotelLogo: '',
-  hotelAddress: 'No. 16, Park Road, Havelock Town, Colombo 05, Sri Lanka',
-  hotelContactEmail: 'engineering@mecolombo.com',
+  hotelName: 'Ceyvista Engineering',
+  hotelLogo: '/logo.png',
+  hotelAddress: 'Colombo, Sri Lanka',
+  hotelContactEmail: 'engineering@ceyvista.com',
   hotelContactPhone: '+94 11 765 4321',
   p1Label: 'P1 – EMERGENCY 🔴',
   p2Label: 'P2 – HIGH 🟠',
