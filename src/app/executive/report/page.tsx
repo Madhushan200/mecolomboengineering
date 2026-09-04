@@ -7,6 +7,7 @@ import { useHotelEngineering } from '@/lib/store';
 import { LocationOption, CategoryOption, Priority, HotelProperty } from '@/lib/types';
 import { suggestSimplePriority } from '@/lib/priority-engine';
 import { PriorityBadge } from '@/components/ui/PriorityBadge';
+import { ImageUploader } from '@/components/ui/ImageUploader';
 import {
   Wrench,
   ArrowLeft,
@@ -294,12 +295,22 @@ export default function ReportProblemPage() {
                 className="w-full text-xs font-medium px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
+
+            {/* 6. Real Photo Upload */}
+            <div className="pt-1">
+              <ImageUploader
+                label="6. Attach Defect Photo (Optional)"
+                sublabel="Take a photo with your camera or choose an image from device"
+                value={photoUrl}
+                onChange={setPhotoUrl}
+              />
+            </div>
           </div>
 
-          {/* 5. Guest Affected Flag */}
+          {/* 7. Guest Affected Flag */}
           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
             <div>
-              <span className="text-xs font-black text-slate-900 block">Is a guest currently affected?</span>
+              <span className="text-xs font-black text-slate-900 block">7. Is a guest currently affected?</span>
               <span className="text-[11px] text-slate-500">In-house guestroom comfort or active customer area</span>
             </div>
 

@@ -5,6 +5,7 @@ import { WorkOrder, Priority, WorkOrderStatus } from '@/lib/types';
 import { useHotelEngineering } from '@/lib/store';
 import { PriorityBadge } from '@/components/ui/PriorityBadge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { ImageUploader } from '@/components/ui/ImageUploader';
 import {
   X,
   Wrench,
@@ -19,6 +20,8 @@ import {
   History,
   Send,
   FileText,
+  Camera,
+  Eye,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
@@ -47,12 +50,15 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ workOrder,
     workOrder?.assignedTechnicianId || (technicians[0]?.id || '')
   );
 
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
   const [showWaitingForm, setShowWaitingForm] = useState(false);
   const [waitingReason, setWaitingReason] = useState('Waiting for replacement spare parts delivery');
 
   const [showCompleteForm, setShowCompleteForm] = useState(false);
   const [workDoneText, setWorkDoneText] = useState('Repaired and verified operational.');
   const [techNoteText, setTechNoteText] = useState('All functions tested in working order.');
+  const [afterPhotoUrl, setAfterPhotoUrl] = useState('');
 
   const [showCloseForm, setShowCloseForm] = useState(false);
   const [closeNoteText, setCloseNoteText] = useState('Quality inspection verified and approved.');
@@ -91,7 +97,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ workOrder,
 
   const handleComplete = () => {
     if (!workDoneText.trim()) return;
-    completeWork(workOrder.id, workDoneText, techNoteText);
+    completeWork(workOrder.id, workDoneText, techNoteText, afterPhotoUrl || undefined);
     setShowCompleteForm(false);
     showToast(`Work Order ${workOrder.workOrderNumber} marked COMPLETED!`, 'success');
   };
@@ -207,6 +213,82 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ workOrder,
             )}
           </div>
 
+          {/* Photos Section: Initial Defect & Repair Photos */}
+          {(workOrder.photoUrl || workOrder.afterPhotoUrl) && (
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                Attached Photos
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {workOrder.photoUrl && (
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                        <Camera className="w-3.5 h-3.5 text-blue-600" />
+                        Defect Photo (Before)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewImage(workOrder.photoUrl || null)}
+                        className="text-[11px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 hover:underline"
+                      >
+                        <Eye className="w-3 h-3" />
+                        Full View
+                      </button>
+                    </div>
+                    <div 
+                      onClick={() => setPreviewImage(workOrder.photoUrl || null)}
+                      className="relative h-36 rounded-lg overflow-hidden bg-slate-200 border border-slate-300/80 cursor-pointer group shadow-xs"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={workOrder.photoUrl}
+                        alt="Defect photo"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                      />
+                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5">
+                        <Eye className="w-4 h-4" /> Click to zoom
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {workOrder.afterPhotoUrl && (
+                  <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-emerald-800 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        Proof of Repair (After)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewImage(workOrder.afterPhotoUrl || null)}
+                        className="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 hover:underline"
+                      >
+                        <Eye className="w-3 h-3" />
+                        Full View
+                      </button>
+                    </div>
+                    <div 
+                      onClick={() => setPreviewImage(workOrder.afterPhotoUrl || null)}
+                      className="relative h-36 rounded-lg overflow-hidden bg-slate-200 border border-emerald-300 cursor-pointer group shadow-xs"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={workOrder.afterPhotoUrl}
+                        alt="Proof of repair"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                      />
+                      <div className="absolute inset-0 bg-emerald-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5">
+                        <Eye className="w-4 h-4" /> Click to zoom
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Work Done Info (If Finished) */}
           {(workOrder.status === 'COMPLETED' || workOrder.status === 'CLOSED') && (
             <div className="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-900 space-y-1.5">
@@ -232,7 +314,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ workOrder,
                 type="text"
                 value={waitingReason}
                 onChange={(e) => setWaitingReason(e.target.value)}
-                className="w-full text-xs p-2.5 rounded-lg border border-amber-300 bg-white"
+                className="w-full text-xs p-2.5 rounded-lg border border-amber-300 bg-white font-medium text-slate-800"
                 placeholder="e.g. Waiting for AC capacitor delivery..."
               />
               <div className="flex justify-end gap-2">
@@ -253,30 +335,62 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ workOrder,
           )}
 
           {showCompleteForm && (
-            <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 space-y-3 animate-fade-in">
+            <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 space-y-3.5 animate-fade-in">
               <span className="font-bold text-xs text-emerald-900 flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                Work Completion & Repair Details:
+                Work Completion & Repair Verification:
               </span>
-              <textarea
-                rows={2}
-                value={workDoneText}
-                onChange={(e) => setWorkDoneText(e.target.value)}
-                className="w-full text-xs p-2.5 rounded-lg border border-emerald-300 bg-white"
-                placeholder="Describe the repair actions taken..."
-              />
-              <div className="flex justify-end gap-2">
+              
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                  Actions Taken to Resolve:
+                </label>
+                <textarea
+                  rows={2}
+                  value={workDoneText}
+                  onChange={(e) => setWorkDoneText(e.target.value)}
+                  className="w-full text-xs p-2.5 rounded-lg border border-emerald-300 bg-white font-medium text-slate-800"
+                  placeholder="Describe the repair actions taken..."
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                  Technician Quality Note (Optional):
+                </label>
+                <input
+                  type="text"
+                  value={techNoteText}
+                  onChange={(e) => setTechNoteText(e.target.value)}
+                  className="w-full text-xs p-2.5 rounded-lg border border-emerald-300 bg-white font-medium text-slate-800"
+                  placeholder="e.g. Tested temperature output at 18°C, fan operating normally"
+                />
+              </div>
+
+              {/* Real Image Uploader for Proof of Repair */}
+              <div className="pt-2 border-t border-emerald-200/70">
+                <ImageUploader
+                  label="Attach Proof of Repair Photo (Optional / Camera)"
+                  description="Take a live photo of the repaired equipment or pick from gallery"
+                  value={afterPhotoUrl}
+                  onChange={setAfterPhotoUrl}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-emerald-200">
                 <button
+                  type="button"
                   onClick={() => setShowCompleteForm(false)}
                   className="text-xs px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-200/60"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handleComplete}
-                  className="text-xs px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg"
+                  className="text-xs px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm"
                 >
-                  Submit & Complete
+                  Submit & Complete Repair
                 </button>
               </div>
             </div>
@@ -292,7 +406,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ workOrder,
                 type="text"
                 value={closeNoteText}
                 onChange={(e) => setCloseNoteText(e.target.value)}
-                className="w-full text-xs p-2.5 rounded-lg border border-slate-300 bg-white"
+                className="w-full text-xs p-2.5 rounded-lg border border-slate-300 bg-white font-medium text-slate-800"
                 placeholder="Supervisor verification note..."
               />
               <div className="flex justify-end gap-2">
@@ -383,6 +497,41 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ workOrder,
           <span>Time: {new Date(workOrder.reportedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
         </div>
       </div>
+
+      {/* Full-Screen Image Preview Lightbox */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="relative max-w-4xl max-h-[90vh] bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-white/10 flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-3.5 bg-slate-950/80 border-b border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-white text-xs font-bold">
+                <Camera className="w-4 h-4 text-blue-400" />
+                <span>Photo Inspection • {workOrder.workOrderNumber}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewImage(null)}
+                className="p-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-2 flex items-center justify-center overflow-auto max-h-[80vh]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewImage}
+                alt="Full size preview"
+                className="max-w-full max-h-[75vh] object-contain rounded-lg"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -18,6 +18,7 @@ import {
   AlertCircle,
   User,
   Eye,
+  Camera,
 } from 'lucide-react';
 import { TicketDetailModal } from '@/components/work-orders/TicketDetailModal';
 
@@ -185,13 +186,37 @@ export default function ExecutivePortalPage() {
                   <div className="flex items-center gap-2">
                     <PriorityBadge priority={wo.priority} size="sm" />
                     <StatusBadge status={wo.status} size="sm" />
+                    {wo.photoUrl && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                        <Camera className="w-3 h-3" /> Photo
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {/* Issue Title & Description */}
-                <div>
-                  <h3 className="text-base font-black text-slate-900 leading-snug">{wo.title}</h3>
-                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">{wo.description}</p>
+                {/* Issue Title, Description & Photo Thumbnail */}
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <h3 className="text-base font-black text-slate-900 leading-snug">{wo.title}</h3>
+                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">{wo.description}</p>
+                  </div>
+                  {wo.photoUrl && (
+                    <div
+                      onClick={() => setSelectedWorkOrder(wo)}
+                      className="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 shrink-0 bg-slate-100 cursor-pointer hover:opacity-90 shadow-xs relative group"
+                      title="Click to view work order & attached photo"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={wo.photoUrl}
+                        alt="Defect photo"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Eye className="w-4 h-4 text-white" />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Waiting reason or work done notes if present */}
