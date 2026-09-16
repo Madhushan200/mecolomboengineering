@@ -1,5 +1,6 @@
 # dependencies
-/node_modules
+node_modules/
+**/node_modules/
 /.pnp
 .pnp.js
 .yarn/install-state.gz
@@ -17,6 +18,15 @@
 # misc
 .DS_Store
 *.pem
+.wrangler/
+
+# android gradle build
+android/.gradle/
+android/build/
+android/app/build/
+android/capacitor-cordova-android-plugins/build/
+*.apk
+*.aab
 
 # debug
 npm-debug.log*
@@ -32,3 +42,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+

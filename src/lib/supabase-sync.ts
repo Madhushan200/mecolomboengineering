@@ -2,9 +2,13 @@ import { supabase, isSupabaseConfigured } from './supabase';
 import { WorkOrder, UserProfile, Department, Technician, SystemSettings } from './types';
 import { isValidUUID, generateUUID } from './uuid';
 
+const CLOUDFLARE_API_BASE =
+  process.env.NEXT_PUBLIC_CLOUDFLARE_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  'https://me-engineering-api.madhushan875.workers.dev';
+
 // Convert camelCase WorkOrder to snake_case DB record
 export function toDbWorkOrder(wo: WorkOrder) {
-  // Store hotel prefix in description if not already present, ensuring full cross-device sync without requiring DB schema migration
   let dbDescription = wo.description || '';
   const hotel = wo.hotelName || 'ME Colombo';
   if (!dbDescription.startsWith('[Property:')) {
@@ -26,7 +30,7 @@ export function toDbWorkOrder(wo: WorkOrder) {
     description: dbDescription || null,
     photo_url: wo.photoUrl || null,
     after_photo_url: wo.afterPhotoUrl || null,
-    guest_affected: wo.guestAffected,
+    guest_affected: wo.guestAffected ? 1 : 0,
     priority: wo.priority,
     suggested_priority: wo.suggestedPriority || null,
     status: wo.status,
@@ -61,143 +65,119 @@ export function fromDbWorkOrder(row: any, history: any[] = []): WorkOrder {
     hotelName = 'NEVA';
   }
 
+  // Safely parse history
+  const safeHistory = (history || []).map(h => ({
+    id: h.id || generateUUID(),
+    workOrderId: h.work_order_id || h.workOrderId || row.id,
+    status: h.status || 'NEW',
+    timestamp: h.timestamp || h.created_at || row.created_at || new Date().toISOString(),
+    actorName: h.actor_name || h.actorName || row.reported_by || 'Staff',
+    note: h.note || '',
+  }));
+
+  if (safeHistory.length === 0) {
+    safeHistory.push({
+      id: generateUUID(),
+      workOrderId: row.id,
+      status: row.status || 'NEW',
+      timestamp: row.created_at || row.reported_at || new Date().toISOString(),
+      actorName: row.reported_by || 'Staff',
+      note: 'Request recorded in system',
+    });
+  }
+
   return {
-    id: row.id,
-    workOrderNumber: row.work_order_number,
+    id: row.id || generateUUID(),
+    workOrderNumber: row.work_order_number || row.workOrderNumber,
     hotelName: hotelName,
-    reportedBy: row.reported_by,
-    reportedById: row.reported_by_id,
-    departmentId: row.department_id,
-    departmentName: row.department_name,
-    location: row.location,
-    roomNumber: row.room_number,
-    category: row.category,
-    title: row.title,
+    reportedBy: row.reported_by || row.reportedBy || 'Staff',
+    reportedById: row.reported_by_id || row.reportedById || null,
+    departmentId: row.department_id || row.departmentId || null,
+    departmentName: row.department_name || row.departmentName || 'Engineering',
+    location: row.location || '',
+    roomNumber: row.room_number || row.roomNumber || null,
+    category: row.category || 'General',
+    title: row.title || 'Maintenance Request',
     description: cleanDescription,
-    photoUrl: row.photo_url,
-    afterPhotoUrl: row.after_photo_url,
-    guestAffected: Boolean(row.guest_affected),
-    priority: row.priority,
-    suggestedPriority: row.suggested_priority,
-    status: row.status,
-    assignedTechnicianId: row.assigned_technician_id,
-    assignedTechnicianName: row.assigned_technician_name,
-    reportedAt: row.reported_at || row.created_at,
-    acceptedAt: row.accepted_at,
-    startedAt: row.started_at,
-    waitingAt: row.waiting_at,
-    completedAt: row.completed_at,
-    closedAt: row.closed_at,
-    acceptedBy: row.accepted_by,
-    closedBy: row.closed_by,
-    waitingReason: row.waiting_reason,
-    workDone: row.work_done,
-    completionNote: row.completion_note,
-    createdAt: row.created_at || row.reported_at,
-    updatedAt: row.updated_at || row.reported_at,
-    history: history.map(h => ({
-      id: h.id,
-      workOrderId: h.work_order_id,
-      status: h.status,
-      timestamp: h.timestamp || h.created_at,
-      actorName: h.actor_name,
-      note: h.note,
-    })),
+    photoUrl: row.photo_url || row.photoUrl || null,
+    afterPhotoUrl: row.after_photo_url || row.afterPhotoUrl || null,
+    guestAffected: Boolean(row.guest_affected || row.guestAffected),
+    priority: row.priority || 'P3',
+    suggestedPriority: row.suggested_priority || row.suggestedPriority || null,
+    status: row.status || 'NEW',
+    assignedTechnicianId: row.assigned_technician_id || row.assignedTechnicianId || null,
+    assignedTechnicianName: row.assigned_technician_name || row.assignedTechnicianName || null,
+    reportedAt: row.reported_at || row.reportedAt || row.created_at || new Date().toISOString(),
+    acceptedAt: row.accepted_at || row.acceptedAt || null,
+    startedAt: row.started_at || row.startedAt || null,
+    waitingAt: row.waiting_at || row.waitingAt || null,
+    completedAt: row.completed_at || row.completedAt || null,
+    closedAt: row.closed_at || row.closedAt || null,
+    acceptedBy: row.accepted_by || row.acceptedBy || null,
+    closedBy: row.closed_by || row.closedBy || null,
+    waitingReason: row.waiting_reason || row.waitingReason || null,
+    workDone: row.work_done || row.workDone || null,
+    completionNote: row.completion_note || row.completionNote || null,
+    createdAt: row.created_at || row.createdAt || row.reported_at || new Date().toISOString(),
+    updatedAt: row.updated_at || row.updatedAt || row.reported_at || new Date().toISOString(),
+    history: safeHistory,
   };
 }
 
-// Push a new/updated work order to Supabase
+// Push a new/updated work order to Cloudflare D1
 export async function syncWorkOrderToSupabase(wo: WorkOrder) {
-  if (!isSupabaseConfigured || !supabase) return;
   try {
     const dbRecord = toDbWorkOrder(wo);
-    const { error } = await supabase.from('work_orders').upsert(dbRecord, { onConflict: 'work_order_number' });
-    if (error) {
-      console.error('Supabase upsert error:', error);
-    }
+    const res = await fetch(`${CLOUDFLARE_API_BASE}/api/work-orders/${encodeURIComponent(dbRecord.id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dbRecord),
+    });
 
-    // Sync latest status history
-    if (wo.history && wo.history.length > 0) {
-      const latestHistory = wo.history[0];
-      const histId = isValidUUID(latestHistory.id) ? latestHistory.id : generateUUID();
-      const targetWoId = isValidUUID(wo.id) ? wo.id : dbRecord.id;
-
-      await supabase.from('work_order_status_history').upsert({
-        id: histId,
-        work_order_id: targetWoId,
-        status: latestHistory.status,
-        timestamp: latestHistory.timestamp,
-        actor_name: latestHistory.actorName,
-        note: latestHistory.note || null,
+    if (!res.ok && res.status === 404) {
+      await fetch(`${CLOUDFLARE_API_BASE}/api/work-orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dbRecord),
       });
     }
   } catch (err) {
-    console.error('Supabase work_order sync exception:', err);
+    console.warn('Cloudflare Worker syncWorkOrder notice:', err);
   }
 }
 
-// Fetch all work orders and histories from Supabase
+// Fetch all work orders and histories from Cloudflare D1
 export async function fetchWorkOrdersFromSupabase(): Promise<WorkOrder[] | null> {
-  if (!isSupabaseConfigured || !supabase) return null;
   try {
-    const { data: woData, error: woError } = await supabase
-      .from('work_orders')
-      .select('*')
-      .order('reported_at', { ascending: false });
+    const res = await fetch(`${CLOUDFLARE_API_BASE}/api/work-orders`);
+    if (!res.ok) return null;
+    const woData = await res.json();
+    if (!woData || !Array.isArray(woData)) return [];
 
-    if (woError) {
-      console.error('Error fetching work orders:', woError);
-      return null;
-    }
-    if (!woData || woData.length === 0) return [];
-
-    const { data: historyData } = await supabase
-      .from('work_order_status_history')
-      .select('*')
-      .order('timestamp', { ascending: false });
-
-    return woData.map(row => {
-      const matchedHistory = (historyData || []).filter(h => h.work_order_id === row.id);
-      return fromDbWorkOrder(row, matchedHistory);
-    });
+    return woData.map(row => fromDbWorkOrder(row, row.status_history || []));
   } catch (err) {
-    console.error('Exception fetching work orders from Supabase:', err);
+    console.warn('Cloudflare Worker fetchWorkOrders notice:', err);
     return null;
   }
 }
 
-// Delete a work order from Supabase
+// Delete a work order from Cloudflare D1
 export async function deleteWorkOrderFromSupabase(id: string, workOrderNumber?: string): Promise<boolean> {
-  if (!isSupabaseConfigured || !supabase) return false;
   try {
-    // 1. Delete associated status history
-    if (isValidUUID(id)) {
-      await supabase.from('work_order_status_history').delete().eq('work_order_id', id);
-    }
-
-    // 2. Delete work order by id or work_order_number
-    if (isValidUUID(id)) {
-      const { error } = await supabase.from('work_orders').delete().eq('id', id);
-      if (error) console.error('Supabase delete error by id:', error);
-    }
-    
-    if (workOrderNumber) {
-      const { error } = await supabase.from('work_orders').delete().eq('work_order_number', workOrderNumber);
-      if (error) console.error('Supabase delete error by number:', error);
-    } else if (!isValidUUID(id)) {
-      const { error } = await supabase.from('work_orders').delete().eq('work_order_number', id);
-      if (error) console.error('Supabase delete error by fallback id:', error);
-    }
-
-    return true;
+    const target = id || workOrderNumber;
+    if (!target) return false;
+    const res = await fetch(`${CLOUDFLARE_API_BASE}/api/work-orders/${encodeURIComponent(target)}`, {
+      method: 'DELETE',
+    });
+    return res.ok;
   } catch (err) {
-    console.error('Supabase deleteWorkOrder exception:', err);
+    console.warn('Cloudflare Worker deleteWorkOrder notice:', err);
     return false;
   }
 }
 
 // ---------------------------------------------------------------------------
-// USER PROFILES LIVE CLOUD SYNC (Ensures all created logins work on APK & Web)
+// USER PROFILES LIVE CLOUD SYNC
 // ---------------------------------------------------------------------------
 
 export function toDbUserProfile(user: UserProfile) {
@@ -214,7 +194,7 @@ export function toDbUserProfile(user: UserProfile) {
     role: user.role,
     department: user.department || 'Administration',
     phone: credentialsPayload,
-    active: user.active !== false,
+    active: user.active !== false ? 1 : 0,
     updated_at: new Date().toISOString(),
   };
 }
@@ -244,54 +224,44 @@ export function fromDbUserProfile(row: any): UserProfile {
     role: row.role,
     department: row.department,
     phone: phone,
-    active: row.active !== false,
+    active: row.active !== 0 && row.active !== false,
   };
 }
 
 export async function syncUserProfileToSupabase(user: UserProfile): Promise<boolean> {
-  if (!isSupabaseConfigured || !supabase) return false;
   try {
     const dbRecord = toDbUserProfile(user);
-    const { error } = await supabase.from('profiles').upsert(dbRecord, { onConflict: 'email' });
-    if (error) {
-      console.error('Supabase profile sync error:', error);
-      return false;
-    }
-    return true;
+    const res = await fetch(`${CLOUDFLARE_API_BASE}/api/profiles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dbRecord),
+    });
+    return res.ok;
   } catch (err) {
-    console.error('Supabase profile sync exception:', err);
+    console.warn('Cloudflare Worker syncProfile notice:', err);
     return false;
   }
 }
 
 export async function deleteUserProfileFromSupabase(userId: string): Promise<boolean> {
-  if (!isSupabaseConfigured || !supabase) return false;
   try {
-    const { error } = await supabase.from('profiles').delete().eq('id', userId);
-    if (error) {
-      console.error('Supabase profile delete error:', error);
-      return false;
-    }
-    return true;
+    const res = await fetch(`${CLOUDFLARE_API_BASE}/api/profiles/${encodeURIComponent(userId)}`, {
+      method: 'DELETE',
+    });
+    return res.ok;
   } catch (err) {
-    console.error('Supabase profile delete exception:', err);
     return false;
   }
 }
 
 export async function fetchUserProfilesFromSupabase(): Promise<UserProfile[] | null> {
-  if (!isSupabaseConfigured || !supabase) return null;
   try {
-    const { data, error } = await supabase.from('profiles').select('*');
-    if (error) {
-      console.error('Supabase fetch profiles error:', error);
-      return null;
-    }
-    if (!data) return [];
+    const res = await fetch(`${CLOUDFLARE_API_BASE}/api/profiles`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!Array.isArray(data)) return [];
     return data.map(fromDbUserProfile);
   } catch (err) {
-    console.error('Supabase fetch profiles exception:', err);
     return null;
   }
 }
-

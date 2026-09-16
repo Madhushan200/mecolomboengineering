@@ -30,6 +30,8 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
+import { StorageSanitizer } from '@/components/StorageSanitizer';
+
 export default function RootLayout({
   children,
 }: {
@@ -43,6 +45,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
       </head>
       <body className={`${inter.className} bg-slate-50 text-slate-900 min-h-screen antialiased selection:bg-blue-500 selection:text-white`}>
+        <StorageSanitizer />
         <EngineeringProvider>
           <ToastProvider>
             <div className="flex flex-col min-h-screen">

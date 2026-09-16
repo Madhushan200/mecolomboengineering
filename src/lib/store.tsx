@@ -112,24 +112,26 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
   // Load from LocalStorage
   useEffect(() => {
     try {
-      const DATA_VERSION = '2026_09_04_PROD_CLEAN_V6';
+      const DATA_VERSION = '2026_09_16_CLOUDFLARE_V2';
       const storedVersion = localStorage.getItem('simple_eng_data_version');
       
-      // Auto-purge legacy dummy data cache
       if (storedVersion !== DATA_VERSION) {
         localStorage.removeItem('simple_eng_work_orders');
         localStorage.removeItem('simple_eng_work_orders_v2');
         localStorage.removeItem('simple_eng_work_orders_v3');
+        localStorage.removeItem('simple_eng_work_orders_v4');
         localStorage.setItem('simple_eng_data_version', DATA_VERSION);
-        localStorage.setItem('simple_eng_work_orders_v4', JSON.stringify([]));
+        localStorage.setItem('simple_eng_work_orders_v5', JSON.stringify([]));
         setWorkOrders([]);
       } else {
-        const storedWos = localStorage.getItem('simple_eng_work_orders_v4');
+        const storedWos = localStorage.getItem('simple_eng_work_orders_v5');
         if (storedWos) {
-          const parsed: WorkOrder[] = JSON.parse(storedWos);
-          // Safety filter against any old dummy ticket numbers
-          const clean = parsed.filter(w => !w.workOrderNumber?.startsWith('WO-2026-004'));
-          setWorkOrders(clean);
+          try {
+            const parsed: WorkOrder[] = JSON.parse(storedWos);
+            setWorkOrders(Array.isArray(parsed) ? parsed : []);
+          } catch {
+            setWorkOrders([]);
+          }
         } else {
           setWorkOrders([]);
         }

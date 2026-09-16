@@ -1,0 +1,92 @@
+[
+  {
+    "ticket": "WO-2026-0054",
+    "type": "before (photo_url)",
+    "filename": "WO-2026-0054_before.jpg",
+    "sizeBytes": 281448,
+    "sizeKB": "274.85",
+    "workOrderId": "3b3e95db-ebda-4628-87cd-3f505051c078",
+    "title": "Wifi router detach"
+  },
+  {
+    "ticket": "WO-2026-0052",
+    "type": "before (photo_url)",
+    "filename": "WO-2026-0052_before.jpg",
+    "sizeBytes": 217388,
+    "sizeKB": "212.29",
+    "workOrderId": "fc720de5-5144-42cb-b0ac-6a29c11a1a49",
+    "title": "Wall art light not working"
+  },
+  {
+    "ticket": "WO-2026-0048",
+    "type": "after (after_photo_url)",
+    "filename": "WO-2026-0048_after.jpg",
+    "sizeBytes": 100998,
+    "sizeKB": "98.63",
+    "workOrderId": "5560ee55-352c-4e0a-a8af-e1c87546a2f0",
+    "title": "Restaurant outside AC not working (near the TV)"
+  },
+  {
+    "ticket": "WO-2026-0046",
+    "type": "before (photo_url)",
+    "filename": "WO-2026-0046_before.jpg",
+    "sizeBytes": 63160,
+    "sizeKB": "61.68",
+    "workOrderId": "23e8bdfb-a266-4a06-b0ae-8ada05725ce3",
+    "title": "The Ice Machine is still not working"
+  },
+  {
+    "ticket": "WO-2026-0050",
+    "type": "before (photo_url)",
+    "filename": "WO-2026-0050_before.jpg",
+    "sizeBytes": 88803,
+    "sizeKB": "86.72",
+    "workOrderId": "bf169e08-ead0-4c57-bdf6-019bbc848997",
+    "title": "24000BTU AC outdoor unit 6th floor"
+  },
+  {
+    "ticket": "WO-2026-0050",
+    "type": "after (after_photo_url)",
+    "filename": "WO-2026-0050_after.jpg",
+    "sizeBytes": 144723,
+    "sizeKB": "141.33",
+    "workOrderId": "bf169e08-ead0-4c57-bdf6-019bbc848997",
+    "title": "24000BTU AC outdoor unit 6th floor"
+  },
+  {
+    "ticket": "WO-2026-0049",
+    "type": "before (photo_url)",
+    "filename": "WO-2026-0049_before.jpg",
+    "sizeBytes": 224076,
+    "sizeKB": "218.82",
+    "workOrderId": "29c4f176-e983-4860-b8d5-a011f33eb9f7",
+    "title": "Desk need to Polish"
+  },
+  {
+    "ticket": "WO-2026-0049",
+    "type": "after (after_photo_url)",
+    "filename": "WO-2026-0049_after.jpg",
+    "sizeBytes": 91547,
+    "sizeKB": "89.40",
+    "workOrderId": "29c4f176-e983-4860-b8d5-a011f33eb9f7",
+    "title": "Desk need to Polish"
+  },
+  {
+    "ticket": "WO-2026-0057",
+    "type": "before (photo_url)",
+    "filename": "WO-2026-0057_before.jpg",
+    "sizeBytes": 72457,
+    "sizeKB": "70.76",
+    "workOrderId": "da6fc86b-a1ec-4402-920b-37c311914de4",
+    "title": "Kitchen food troly ,need to  be chenge wheel"
+  },
+  {
+    "ticket": "WO-2026-0058",
+    "type": "before (photo_url)",
+    "filename": "WO-2026-0058_before.jpg",
+    "sizeBytes": 135890,
+    "sizeKB": "132.71",
+    "workOrderId": "29063777-2cad-445c-96e1-71668609f0ad",
+    "title": "Paint Touch ups"
+  }
+]

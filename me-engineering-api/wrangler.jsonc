@@ -1,0 +1,26 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "me-engineering-api",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-09-11",
+	"compatibility_flags": [
+		"global_fetch_strictly_public"
+	],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "me-engineering-db",
+			"database_id": "50165fe5-4dc5-459a-9016-e415066af7b2"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "PHOTOS_BUCKET",
+			"bucket_name": "me-engineering-photos"
+		}
+	],
+	"observability": {
+		"enabled": true
+	},
+	"upload_source_maps": true
+}
