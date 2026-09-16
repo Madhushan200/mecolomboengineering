@@ -1,6 +1,6 @@
 Add-Type -AssemblyName System.Drawing
 
-$sourcePath = 'C:\Users\ME\.gemini\antigravity-ide\brain\7f97f19a-c6f5-4704-8d26-a82898b0a279\.user_uploaded\media_1788510905315.jpg'
+$sourcePath = 'C:\Users\ME\.gemini\antigravity-ide\brain\7f97f19a-c6f5-4704-8d26-a82898b0a279\.user_uploaded\media_1789579066712.jpg'
 $img = [System.Drawing.Image]::FromFile($sourcePath)
 
 function Resize-Image($image, $width, $height, $outputPath) {

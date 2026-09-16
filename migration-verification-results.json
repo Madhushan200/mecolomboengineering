@@ -1,0 +1,79 @@
+{
+  "tableCounts": {
+    "departments": {
+      "supabase": 0,
+      "d1": 0,
+      "status": "MATCH"
+    },
+    "profiles": {
+      "supabase": 21,
+      "d1": 21,
+      "status": "MATCH"
+    },
+    "technicians": {
+      "supabase": 0,
+      "d1": 0,
+      "status": "MATCH"
+    },
+    "work_orders": {
+      "supabase": 13,
+      "d1": 14,
+      "status": "MISMATCH"
+    },
+    "system_settings": {
+      "supabase": 0,
+      "d1": 1,
+      "status": "MATCH (Default initialized)"
+    },
+    "notifications": {
+      "supabase": 0,
+      "d1": 0,
+      "status": "MATCH"
+    },
+    "work_order_photos": {
+      "supabase": "0 (0 in table, 10 Base64 inline)",
+      "d1": "10 (Populated in R2 & work_order_photos)",
+      "status": "MATCH & UPGRADED"
+    },
+    "work_order_status_history": {
+      "supabase": 13,
+      "d1": 13,
+      "status": "MATCH"
+    },
+    "work_order_comments": {
+      "supabase": 0,
+      "d1": 0,
+      "status": "MATCH"
+    }
+  },
+  "endpointResults": {
+    "GET /api/departments": 200,
+    "GET /api/profiles": 200,
+    "GET /api/technicians": 200,
+    "GET /api/work-orders": 200,
+    "GET /api/system-settings": 200,
+    "GET /api/notifications": 200
+  },
+  "workOrderChecks": {
+    "passed": 13,
+    "failed": 0,
+    "details": []
+  },
+  "profileChecks": {
+    "passed": 21,
+    "failed": 0,
+    "details": []
+  },
+  "historyChecks": {
+    "passed": 13,
+    "failed": 0,
+    "details": []
+  },
+  "photoChecks": {
+    "passed": 10,
+    "failed": 0,
+    "total": 10,
+    "details": []
+  },
+  "errors": []
+}
