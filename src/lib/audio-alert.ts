@@ -8,9 +8,13 @@ class SoundAlertManager {
 
   constructor() {
     if (typeof window !== 'undefined') {
-      const savedMute = localStorage.getItem('hotel_eng_sound_muted');
-      if (savedMute !== null) {
-        this.isMuted = savedMute === 'true';
+      try {
+        const savedMute = localStorage.getItem('hotel_eng_sound_muted');
+        if (savedMute !== null) {
+          this.isMuted = savedMute === 'true';
+        }
+      } catch {
+        // Storage restricted in strict WebKit mode
       }
     }
   }
@@ -43,7 +47,11 @@ class SoundAlertManager {
   public setMuted(muted: boolean) {
     this.isMuted = muted;
     if (typeof window !== 'undefined') {
-      localStorage.setItem('hotel_eng_sound_muted', String(muted));
+      try {
+        localStorage.setItem('hotel_eng_sound_muted', String(muted));
+      } catch {
+        // Storage restricted
+      }
     }
     if (muted) {
       this.stopAlert();

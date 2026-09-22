@@ -97,6 +97,60 @@ interface EngineeringContextType {
 
 const EngineeringContext = createContext<EngineeringContextType | undefined>(undefined);
 
+const safeStorage = {
+  getItem: (key: string): string | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): boolean => {
+    if (typeof window === 'undefined') return false;
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (err: any) {
+      if (
+        err?.name === 'QuotaExceededError' ||
+        err?.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+        err?.code === 22 ||
+        err?.code === 1014
+      ) {
+        try {
+          localStorage.removeItem('simple_eng_work_orders_v4');
+          localStorage.removeItem('simple_eng_work_orders_v3');
+          localStorage.removeItem('simple_eng_work_orders_v2');
+          localStorage.removeItem('simple_eng_work_orders_v1');
+          localStorage.removeItem('simple_eng_work_orders');
+          localStorage.setItem(key, value);
+          return true;
+        } catch {
+          return false;
+        }
+      }
+      return false;
+    }
+  },
+  removeItem: (key: string): void => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // ignore
+    }
+  },
+  clear: (): void => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.clear();
+    } catch {
+      // ignore
+    }
+  },
+};
+
 export function EngineeringProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [settings, setSettings] = useState<SystemSettings>(initialSystemSettings);
@@ -113,18 +167,18 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     try {
       const DATA_VERSION = '2026_09_16_CLOUDFLARE_V2';
-      const storedVersion = localStorage.getItem('simple_eng_data_version');
+      const storedVersion = safeStorage.getItem('simple_eng_data_version');
       
       if (storedVersion !== DATA_VERSION) {
-        localStorage.removeItem('simple_eng_work_orders');
-        localStorage.removeItem('simple_eng_work_orders_v2');
-        localStorage.removeItem('simple_eng_work_orders_v3');
-        localStorage.removeItem('simple_eng_work_orders_v4');
-        localStorage.setItem('simple_eng_data_version', DATA_VERSION);
-        localStorage.setItem('simple_eng_work_orders_v5', JSON.stringify([]));
+        safeStorage.removeItem('simple_eng_work_orders');
+        safeStorage.removeItem('simple_eng_work_orders_v2');
+        safeStorage.removeItem('simple_eng_work_orders_v3');
+        safeStorage.removeItem('simple_eng_work_orders_v4');
+        safeStorage.setItem('simple_eng_data_version', DATA_VERSION);
+        safeStorage.setItem('simple_eng_work_orders_v5', JSON.stringify([]));
         setWorkOrders([]);
       } else {
-        const storedWos = localStorage.getItem('simple_eng_work_orders_v5');
+        const storedWos = safeStorage.getItem('simple_eng_work_orders_v5');
         if (storedWos) {
           try {
             const parsed: WorkOrder[] = JSON.parse(storedWos);
@@ -137,42 +191,60 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
         }
       }
 
-      const storedSettings = localStorage.getItem('simple_eng_settings');
+      const storedSettings = safeStorage.getItem('simple_eng_settings');
       if (storedSettings) {
-        setSettings(JSON.parse(storedSettings));
+        try {
+          setSettings(JSON.parse(storedSettings));
+        } catch {
+          setSettings(initialSystemSettings);
+        }
       } else {
         setSettings(initialSystemSettings);
       }
 
-      const storedDepts = localStorage.getItem('simple_eng_departments');
-      if (storedDepts) setDepartments(JSON.parse(storedDepts));
-
-      const storedTechs = localStorage.getItem('simple_eng_technicians');
-      if (storedTechs) setTechnicians(JSON.parse(storedTechs));
-
-      // Load users and ensure admin password is adminme1234
-      const storedUsers = localStorage.getItem('simple_eng_users_v3');
-      if (storedUsers) {
-        const parsed: UserProfile[] = JSON.parse(storedUsers);
-        const updated = parsed.map(u => {
-          if (u.role === 'ADMIN' || u.username === 'mecolomboadmin') {
-            return { ...u, password: 'adminme1234' };
-          }
-          return u;
-        });
-        setUsers(updated);
-      } else {
-        setUsers(initialUsers);
-        localStorage.setItem('simple_eng_users_v3', JSON.stringify(initialUsers));
+      const storedDepts = safeStorage.getItem('simple_eng_departments');
+      if (storedDepts) {
+        try {
+          setDepartments(JSON.parse(storedDepts));
+        } catch {}
       }
 
-      const storedUser = localStorage.getItem('simple_eng_current_user');
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        if (parsedUser.role === 'ADMIN' || parsedUser.username === 'mecolomboadmin') {
-          parsedUser.password = 'adminme1234';
+      const storedTechs = safeStorage.getItem('simple_eng_technicians');
+      if (storedTechs) {
+        try {
+          setTechnicians(JSON.parse(storedTechs));
+        } catch {}
+      }
+
+      // Load users and ensure admin password is adminme1234
+      const storedUsers = safeStorage.getItem('simple_eng_users_v3');
+      if (storedUsers) {
+        try {
+          const parsed: UserProfile[] = JSON.parse(storedUsers);
+          const updated = parsed.map(u => {
+            if (u.role === 'ADMIN' || u.username === 'mecolomboadmin') {
+              return { ...u, password: 'adminme1234' };
+            }
+            return u;
+          });
+          setUsers(updated);
+        } catch {
+          setUsers(initialUsers);
         }
-        setCurrentUser(parsedUser);
+      } else {
+        setUsers(initialUsers);
+        safeStorage.setItem('simple_eng_users_v3', JSON.stringify(initialUsers));
+      }
+
+      const storedUser = safeStorage.getItem('simple_eng_current_user');
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          if (parsedUser.role === 'ADMIN' || parsedUser.username === 'mecolomboadmin') {
+            parsedUser.password = 'adminme1234';
+          }
+          setCurrentUser(parsedUser);
+        } catch {}
       }
 
       setIsMuted(soundAlert.getMuted());
@@ -186,12 +258,12 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
   // Save to LocalStorage
   useEffect(() => {
     if (!isLoaded) return;
-    localStorage.setItem('simple_eng_settings', JSON.stringify(settings));
-    localStorage.setItem('simple_eng_departments', JSON.stringify(departments));
-    localStorage.setItem('simple_eng_technicians', JSON.stringify(technicians));
-    localStorage.setItem('simple_eng_users_v3', JSON.stringify(users));
-    localStorage.setItem('simple_eng_current_user', JSON.stringify(currentUser));
-    localStorage.setItem('simple_eng_work_orders_v4', JSON.stringify(workOrders));
+    safeStorage.setItem('simple_eng_settings', JSON.stringify(settings));
+    safeStorage.setItem('simple_eng_departments', JSON.stringify(departments));
+    safeStorage.setItem('simple_eng_technicians', JSON.stringify(technicians));
+    safeStorage.setItem('simple_eng_users_v3', JSON.stringify(users));
+    safeStorage.setItem('simple_eng_current_user', JSON.stringify(currentUser));
+    safeStorage.setItem('simple_eng_work_orders_v5', JSON.stringify(workOrders));
   }, [isLoaded, settings, departments, technicians, users, currentUser, workOrders]);
 
   // Supabase Hydration & Dual-Engine Realtime Sync (WebSocket + 3s Polling)
@@ -783,7 +855,7 @@ export function EngineeringProvider({ children }: { children: React.ReactNode })
     setUsers(initialUsers);
     setCurrentUser(initialUsers[0]);
     setWorkOrders(initialWorkOrders);
-    localStorage.clear();
+    safeStorage.clear();
   };
 
   return (

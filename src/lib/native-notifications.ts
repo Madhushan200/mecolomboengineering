@@ -1,5 +1,4 @@
-'use client';
-
+import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
 const CHANNEL_ID = 'me_colombo_duty_alerts_v2';
@@ -8,7 +7,7 @@ class NativeNotificationManager {
   private isInitialized = false;
 
   async init() {
-    if (typeof window === 'undefined' || this.isInitialized) return;
+    if (typeof window === 'undefined' || !Capacitor.isNativePlatform() || this.isInitialized) return;
 
     try {
       // 1. Request notification permissions on mobile
